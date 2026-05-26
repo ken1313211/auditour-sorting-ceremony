@@ -1158,6 +1158,12 @@ body {
         display: none !important;
     }
     
+    .screen {
+        overflow-y: auto;
+        align-items: flex-start;
+        padding: 20px 10px;
+    }
+    
     .hp-logo {
         font-size: 3rem;
         margin-bottom: 0px;
@@ -1175,56 +1181,192 @@ body {
 
     .parchment-panel {
         max-width: 95%;
-        padding: 2rem 1.5rem;
+        padding: 1.5rem 1rem;
+        margin: auto 0;
+    }
+
+    .question-text {
+        font-size: 1.6rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    .options-grid {
+        gap: 0.8rem !important;
+    }
+    
+    .option-btn {
+        font-size: 1.1rem !important;
+        padding: 0.6rem 0.8rem !important;
     }
 
     .passport-card {
         width: 95%;
-        margin: 0 auto;
-        max-height: 85vh;
+        margin: auto 0;
+        max-height: 90vh;
         overflow-y: auto;
     }
 
     .passport-top {
-        flex-direction: column;
-        padding: 1.5rem;
+        flex-direction: column !important;
+        padding: 1rem !important;
     }
 
     .passport-profile {
-        border-right: none;
-        border-bottom: 1px solid rgba(255,255,255,0.2);
-        padding-right: 0;
-        padding-bottom: 1rem;
-        margin-bottom: 1rem;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 15px !important;
+        text-align: left !important;
+        border-right: none !important;
+        border-bottom: 1px solid rgba(255,255,255,0.2) !important;
+        padding-right: 0 !important;
+        padding-bottom: 0.8rem !important;
+        margin-bottom: 0.8rem !important;
+        width: 100% !important;
+    }
+
+    .profile-info-text {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        flex: 1 !important;
+    }
+
+    .profile-pic-box {
+        width: 65px !important;
+        height: 65px !important;
+        border-radius: 50% !important;
+        margin: 0 !important;
+        flex-shrink: 0 !important;
+    }
+
+    .profile-pic-box span {
+        font-size: 2rem !important;
+    }
+
+    .passport-name {
+        font-size: 1.4rem !important;
+        margin-bottom: 2px !important;
+    }
+
+    .passport-sub {
+        font-size: 0.8rem !important;
+        margin-bottom: 2px !important;
+        letter-spacing: 1px !important;
+    }
+
+    .passport-date {
+        font-size: 0.7rem !important;
+        margin-bottom: 0 !important;
     }
 
     .passport-attributes {
-        flex-direction: column;
-        padding-left: 0;
-        gap: 1.5rem;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        gap: 6px !important;
+        width: 100% !important;
+        padding-left: 0 !important;
     }
 
-    /* Wrap Intro/Parchment Flex Buttons */
-    .intro-btn-wrapper, .parchment-panel > div[style*="display: flex"] {
+    .attr-box {
+        flex: 1 1 0px !important;
+        min-width: 0 !important;
+        height: auto !important;
+        min-height: 95px !important;
+        padding: 6px 3px !important;
+        margin-bottom: 0 !important;
+    }
+
+    .attr-label {
+        font-size: 0.6rem !important;
+        margin-bottom: 6px !important;
+    }
+
+    .attr-value {
+        font-size: 0.75rem !important;
+        margin-bottom: 4px !important;
+    }
+
+    .attr-desc {
+        font-size: 0.55rem !important;
+        line-height: 1.1 !important;
+    }
+
+    .passport-bottom {
+        padding: 1rem !important;
+    }
+
+    .passport-bottom div[style*="display: flex"] {
+        flex-direction: row !important;
+        justify-content: center !important;
+        gap: 15px !important;
+        width: 100% !important;
+    }
+
+    .passport-bottom .ink-btn {
+        flex: 1 !important;
+        max-width: 150px !important;
+        font-size: 1.05rem !important;
+        padding: 8px 12px !important;
+        margin: 0 !important;
+        border: 1px solid rgba(255,255,255,0.4) !important;
+        border-radius: 4px !important;
+        background: rgba(255,255,255,0.1) !important;
+        color: #fff !important;
+        text-align: center !important;
+        display: inline-block !important;
+        width: auto !important;
+    }
+
+    .passport-bottom .ink-btn:hover {
+        background: rgba(255,255,255,0.2) !important;
+        border-color: #fff !important;
+    }
+
+    /* Keep quiz buttons inline on mobile */
+    .parchment-panel > div[style*="display: flex"] {
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        gap: 5px !important;
+        width: 100% !important;
+    }
+
+    .parchment-panel > div[style*="display: flex"] .ink-btn {
+        width: auto !important;
+        font-size: 0.95rem !important;
+        padding: 5px 10px !important;
+        margin: 0 !important;
+    }
+
+    /* Wrap Intro/Parchment Flex Buttons if they are indeed wrappers */
+    .intro-btn-wrapper {
         flex-direction: column !important;
         align-items: center;
         gap: 15px !important;
         width: 100%;
     }
 
-    .ink-btn {
-        width: 80%;
-        margin: 0 auto;
+    .intro-btn-wrapper .ink-btn {
+        width: 80% !important;
+        margin: 0 auto !important;
     }
 
     /* Houses Carousel wrapper */
     .houses-carousel-wrapper {
         flex-direction: column !important;
+        gap: 10px !important;
+        align-items: center !important;
+        width: 100% !important;
+        margin: auto 0;
     }
     
     #prev-house-btn, #next-house-btn {
-        font-size: 3rem !important;
-        padding: 5px;
+        font-size: 2rem !important;
+        padding: 5px !important;
+        margin: 0 !important;
+        height: auto !important;
+        width: auto !important;
     }
     
     #prev-house-btn {

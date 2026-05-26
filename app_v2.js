@@ -732,7 +732,7 @@ function renderHousePreview() {
     
     document.getElementById('intro-passport-top').style.background = dept.bgColor;
     document.getElementById('intro-passport-name').textContent = dept.name;
-    document.getElementById('intro-passport-name').style.color = dept.color;
+    document.getElementById('intro-passport-name').style.color = dept.accentColor || '#fff';
     document.getElementById('intro-passport-icon').textContent = dept.icon;
     document.getElementById('intro-passport-skill').textContent = dept.skill;
     document.getElementById('intro-passport-tool').textContent = dept.tool;
@@ -868,28 +868,12 @@ function loadQuestion(index) {
 }
 
 function renderQuestionData(q) {
-    questionText.textContent = '';
+    questionText.textContent = q.question;
     optionsContainer.innerHTML = '';
     
     gsap.set([questionText, optionsContainer], { opacity: 1, x: 0, y: 0 });
 
-    if (animationSpeedMultiplier > 0) {
-        let charIndex = 0;
-        function typeChar() {
-            if (charIndex < q.question.length) {
-                questionText.textContent += q.question.charAt(charIndex);
-                if(charIndex % 3 === 0) playHoverSound(); // play sound occasionally
-                charIndex++;
-                typewriterTimeout = setTimeout(typeChar, 30 * animationSpeedMultiplier);
-            } else {
-                showOptions();
-            }
-        }
-        typeChar();
-    } else {
-        questionText.textContent = q.question;
-        showOptions();
-    }
+    showOptions();
 
     function showOptions() {
         q.options.forEach((opt, i) => {
@@ -934,9 +918,11 @@ function renderQuestionData(q) {
     
     if (prevBtn) {
         if (currentQuestionIndex > 0) {
+            prevBtn.style.display = 'inline-block';
             prevBtn.style.opacity = '1';
             prevBtn.style.pointerEvents = 'auto';
         } else {
+            prevBtn.style.display = 'none';
             prevBtn.style.opacity = '0';
             prevBtn.style.pointerEvents = 'none';
         }
@@ -1045,6 +1031,11 @@ function finishSorting() {
     // Switch Screen first
     switchScreen(screens.question, screens.reveal);
 
+    const passportName = document.getElementById('passport-name');
+    if (passportName) {
+        passportName.textContent = currentRecruitName.toUpperCase();
+    }
+
     // Deliberation Cycle Animation (Slot Machine effect)
     let cycleCount = 0;
     const maxCycles = animationSpeedMultiplier === 0 ? 0 : 20; 
@@ -1075,10 +1066,10 @@ function finishSorting() {
         passportTop.style.background = dept.bgColor;
         passportIcon.textContent = dept.icon;
         passportDeptSub.textContent = dept.name;
-        passportDeptSub.style.color = dept.color;
+        passportDeptSub.style.color = dept.accentColor || '#fff';
         
         passportDept.textContent = dept.name;
-        passportDept.style.color = dept.color;
+        passportDept.style.color = dept.accentColor || '#ffd700';
         
         passportSkill.textContent = dept.skill;
         passportTool.textContent = dept.tool;
@@ -1091,7 +1082,7 @@ function finishSorting() {
         if (affinityId) {
             affinityBox.style.display = 'flex';
             passportAffinity.textContent = DEPARTMENTS[affinityId].name;
-            passportAffinity.style.color = DEPARTMENTS[affinityId].color;
+            passportAffinity.style.color = DEPARTMENTS[affinityId].accentColor || '#ffd700';
         } else {
             affinityBox.style.display = 'none';
         }
