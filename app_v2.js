@@ -1,5 +1,5 @@
 import { QUESTIONS, DEPARTMENTS } from './data_questions.js';
-import { saveSortingResult, initDatabase } from './firebase-config.js';
+import { saveSortingResult, initDatabase, fetchSortingResults } from './firebase-config.js';
 import { init3DScene, triggerInteractionAnimation, triggerRevealAnimation, updateGraphicsSettings } from './scene.js';
 
 // State
@@ -106,10 +106,12 @@ function seedHistoryIfNeeded() {
         history = [];
     }
     
-    if (!history || history.length === 0) {
+    const hasOldDepts = history.some(item => ["Engineering", "Marketing", "Design", "Operations"].includes(item.dept));
+    
+    if (!history || history.length === 0 || hasOldDepts) {
         history = [];
-        const depts = ["Engineering", "Marketing", "Design", "Operations"];
-        const mockNames = ["Harry Potter", "Hermione Granger", "Ron Weasley", "Draco Malfoy", "Luna Lovegood", "Neville Longbottom", "Albus Dumbledore", "Sirius Black"];
+        const depts = ["AOA", "ADN", "Tech Risk", "DID"];
+        const mockNames = ["Alex Rivera", "Jamie Chen", "Taylor Smith", "Jordan Lee", "Casey Jones", "Morgan Davis", "Avery Clark", "Riley Miller"];
         const startT = Date.now() - 7 * 24 * 60 * 60 * 1000; // 7 days ago
         for (let i = 0; i < 142; i++) {
             const randomDept = depts[Math.floor(Math.random() * depts.length)];
@@ -152,16 +154,35 @@ function saveResultToHistory(deptName, recruitName) {
 }
 
 function renderPowerBICharts() {
-    let history = [];
-    try {
-        const saved = localStorage.getItem('sorting_history');
-        if (saved) {
-            history = JSON.parse(saved);
+    if (dbConfig && dbConfig.provider === 'firebase') {
+        fetchSortingResults().then(fbHistory => {
+            let history = fbHistory || [];
+            if (fbHistory && fbHistory.length > 0) {
+                localStorage.setItem('sorting_history', JSON.stringify(history));
+            } else {
+                history = JSON.parse(localStorage.getItem('sorting_history')) || [];
+            }
+            drawDashboard(history);
+        }).catch(e => {
+            console.error("Firebase fetch error:", e);
+            const history = JSON.parse(localStorage.getItem('sorting_history')) || [];
+            drawDashboard(history);
+        });
+    } else {
+        let history = [];
+        try {
+            const saved = localStorage.getItem('sorting_history');
+            if (saved) {
+                history = JSON.parse(saved);
+            }
+        } catch (e) {
+            history = [];
         }
-    } catch (e) {
-        history = [];
+        drawDashboard(history);
     }
+}
 
+function drawDashboard(history) {
     const pbiIframe = document.getElementById('pbi-iframe');
     const pbiOverview = document.getElementById('pbi-page-1');
     const pbiLogs = document.getElementById('pbi-page-2');
@@ -244,7 +265,7 @@ function renderPowerBICharts() {
             datasets: [{
                 label: 'Sorted Recruits',
                 data: [deptCounts['AOA'], deptCounts['ADN'], deptCounts['Tech Risk'], deptCounts['DID']],
-                backgroundColor: ['#4facfe', '#ff0844', '#f9d423', '#20e2da'],
+                backgroundColor: ['#ffd700', '#38b6ff', '#ff5757', '#39ff14'],
                 borderRadius: 4
             }]
         },
@@ -277,7 +298,7 @@ function renderPowerBICharts() {
             labels: Object.keys(skillCounts),
             datasets: [{
                 data: Object.values(skillCounts),
-                backgroundColor: ['#4facfe', '#ff0844', '#f9d423', '#20e2da', '#cda73b'],
+                backgroundColor: ['#ffd700', '#38b6ff', '#ff5757', '#39ff14', '#cda73b'],
                 borderWidth: 1,
                 borderColor: '#141414'
             }]
@@ -359,10 +380,10 @@ function renderPowerBICharts() {
             
             const tdDept = document.createElement('td');
             let color = '#fff';
-            if (item.dept.toLowerCase().includes('eng')) color = '#4facfe';
-            else if (item.dept.toLowerCase().includes('mark')) color = '#ff0844';
-            else if (item.dept.toLowerCase().includes('des')) color = '#f9d423';
-            else if (item.dept.toLowerCase().includes('op')) color = '#20e2da';
+            if (item.dept.toLowerCase().includes('aoa')) color = '#ffd700';
+            else if (item.dept.toLowerCase().includes('adn')) color = '#38b6ff';
+            else if (item.dept.toLowerCase().includes('tech') || item.dept.toLowerCase().includes('risk')) color = '#ff5757';
+            else if (item.dept.toLowerCase().includes('did')) color = '#39ff14';
             tdDept.innerHTML = `<span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:${color}; margin-right:6px;"></span>${item.dept}`;
             tr.appendChild(tdDept);
             
@@ -1203,6 +1224,7 @@ function initDbModal() {
         
         // Re-initialize backend
         initDatabase(dbConfig);
+        renderPowerBICharts();
         alert('Database configuration saved.');
     });
 }

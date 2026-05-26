@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, push, set } from "firebase/database";
+import { getDatabase, ref, push, set, get } from "firebase/database";
 
 let app, database;
 let currentConfig = { provider: 'local' };
@@ -89,4 +89,37 @@ export async function saveSortingResult(userName, departmentId, answers) {
         // Local Mode - handled by the UI tracker history natively in app.js
         console.log("Running in Local Mode. Handled by local history tracker.");
     }
+}
+
+// Function to fetch all sorting entries from Firebase
+export async function fetchSortingResults() {
+    if (currentConfig.provider === 'firebase') {
+        if (!database) {
+            console.warn("Database not initialized, skipping fetch.");
+            return null;
+        }
+        try {
+            const entriesRef = ref(database, 'sorting_entries');
+            const snapshot = await get(entriesRef);
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                // Map the Firebase object/dictionary format to the list format used by our UI
+                const list = Object.keys(data).map(key => {
+                    const item = data[key];
+                    return {
+                        id: key.substring(1, 8).toUpperCase(), // generate a unique recruit ID from firebase key
+                        name: item.userName || "Anonymous User",
+                        dept: item.department,
+                        timestamp: item.isoTime || new Date(item.timestamp).toISOString(),
+                        details: "Cloud Firebase entry"
+                    };
+                });
+                return list;
+            }
+            return [];
+        } catch (error) {
+            console.error("Error fetching from Firebase:", error);
+        }
+    }
+    return null;
 }
