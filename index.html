@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Auditour | Sorting Ceremony</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Quintessential&family=IM+Fell+English:ital@0;1&family=Cinzel:wght@600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Protocol Check -->
+    <script>
+        if (window.location.protocol === 'file:') {
+            alert("STOP! You cannot double-click this file to open it.\n\nYour browser's security settings are blocking all the magic (JavaScript) from running on local files.\n\nPlease open the 'Auditour-Sorting Ceremony' folder in VS Code, right-click 'index.html', and click 'Open with Live Server'!");
+        }
+    </script>
+
+    <!-- 3D Canvas Background (Subtle smoke/dust) -->
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- Background Audio (Dance of the Sugar Plum Fairy - Kevin MacLeod) -->
+    <audio id="bg-audio" loop>
+        <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/c/c5/Kevin_MacLeod_-_P_I_Tchaikovsky_Dance_of_the_Sugar_Plum_Fairy.ogg/Kevin_MacLeod_-_P_I_Tchaikovsky_Dance_of_the_Sugar_Plum_Fairy.ogg.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Overlay UI -->
+    <div id="ui-layer">
+        
+        <!-- Splash Screen Menu (Exhibition Style) -->
+        <section id="splash-screen" class="screen active">
+            <div class="exhibition-bg"></div>
+            
+            <!-- Floating Controls in Top Right -->
+            <div class="global-controls">
+                <button id="open-settings-btn" class="icon-btn" title="Ceremony Settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+                <button id="open-admin-btn" class="icon-btn" title="Admin Portal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                </button>
+            </div>
+
+            <div class="intro-graphic">
+                
+                <div class="snitch-container">
+                    <!-- The Snitch -->
+                    <div class="snitch">
+                        <div class="snitch-body"></div>
+                        <div class="wing left-wing"></div>
+                        <div class="wing right-wing"></div>
+                    </div>
+                </div>
+
+                <div class="intro-text-wrapper">
+                    <h1 class="hp-logo">Auditour</h1>
+                    <h2 class="hp-sublogo">THE SORTING CEREMONY</h2>
+                </div>
+                <div class="menu-options intro-btn-wrapper" style="display: flex; gap: 20px;">
+                    <button id="enter-btn" class="ink-btn gold-ink">Begin</button>
+                    <button id="view-houses-btn" class="ink-btn gold-ink">The Departments</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Intro Screen -->
+        <section id="intro-screen" class="screen">
+            <!-- Same parchment panel for the rest of the app -->
+            <div class="main-bg"></div>
+            <div class="parchment-panel">
+                <h1 class="gothic-title">The Journey Begins</h1>
+                <p class="description-text">Step forward. The Sorting will now commence.</p>
+                
+                <div style="text-align: center; margin: 25px 0;">
+                    <input type="text" id="recruit-name-input" class="ink-input" placeholder="Enter your full name" style="width: 80%; padding: 12px; font-size: 1.2rem; background: rgba(0,0,0,0.1); border: 2px solid var(--parchment-border); color: #222; text-align: center; font-family: 'Cinzel', serif;" required autocomplete="off">
+                </div>
+
+                <div style="display: flex; gap: 20px; justify-content: center; margin-top: 20px;">
+                    <button id="cancel-intro-btn" class="ink-btn" style="font-size: 1.4rem;">Return to Menu</button>
+                    <button id="start-btn" class="ink-btn">Proceed</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Question Screen -->
+        <section id="question-screen" class="screen">
+            <div class="main-bg"></div>
+            <div class="parchment-panel wide">
+                <h2 id="question-text" class="question-text">Question goes here...</h2>
+                <div id="options-container" class="options-grid">
+                    <!-- Options injected via JS -->
+                </div>
+                <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <button id="prev-quiz-btn" class="ink-btn" style="font-size: 1.2rem; opacity: 0; pointer-events: none;">&lt; Previous</button>
+                    <button id="cancel-quiz-btn" class="ink-btn" style="font-size: 1.2rem; opacity: 0.7;">Abandon Sorting</button>
+                    <button id="next-quiz-btn" class="ink-btn" style="font-size: 1.2rem; opacity: 0.5; pointer-events: none;">Next &gt;</button>
+                </div>
+            </div>
+            <div class="progress-bar-container">
+                <div id="progress-text" style="text-align: center; color: rgba(255,255,255,0.7); font-size: 0.9rem; margin-bottom: 5px; font-family: 'Inter', sans-serif;">Question 1 of 5</div>
+                <div id="progress-bar"></div>
+            </div>
+        </section>
+
+        <!-- Reveal Screen (Passport Style) -->
+        <section id="reveal-screen" class="screen">
+            <div class="main-bg"></div>
+            
+            <div id="passport-card" class="passport-card">
+                <!-- Colored Top Section -->
+                <div class="passport-top" id="passport-top">
+                    <!-- Left: Profile Info -->
+                    <div class="passport-profile">
+                        <h2 class="passport-name">NEW RECRUIT</h2>
+                        <h4 class="passport-sub" id="passport-dept-sub">Sorting...</h4>
+                        <p class="passport-date">Joined May 2026</p>
+                        <div class="profile-pic-box">
+                            <span id="passport-icon" style="font-size: 5rem;">❓</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Right: Attributes -->
+                    <div class="passport-attributes">
+                        <div class="attr-box">
+                            <h5 class="attr-label">DEPARTMENT</h5>
+                            <h3 class="attr-value" id="passport-dept">???</h3>
+                        </div>
+                        <div class="attr-box">
+                            <h5 class="attr-label">CORE SKILL</h5>
+                            <h3 class="attr-value" id="passport-skill">???</h3>
+                            <p class="attr-desc">Your strongest asset</p>
+                        </div>
+                        <div class="attr-box">
+                            <h5 class="attr-label">TOOL</h5>
+                            <h3 class="attr-value" id="passport-tool">???</h3>
+                            <p class="attr-desc">Your primary weapon</p>
+                        </div>
+                        <div class="attr-box" id="affinity-box" style="display: none;">
+                            <h5 class="attr-label">AFFINITY</h5>
+                            <h3 class="attr-value" id="passport-affinity">None</h3>
+                            <p class="attr-desc">Secondary trait</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dark Bottom Section with Return Button -->
+                <div class="passport-bottom">
+                    <h3 class="welcome-text" style="font-size: 1.5rem; color: #fff;">Sorting Complete</h3>
+                    <p id="department-description" class="description-text" style="color: #ccc; margin-top: 10px;">The sorting hat is deliberating...</p>
+                    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                        <button id="download-btn" class="ink-btn" style="color: #fff; border-color: #fff; display: none;">Download ID</button>
+                        <button id="restart-btn" class="ink-btn" style="color: #fff; border-color: #fff; display: none;">Return</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Houses Introduction Screen -->
+        <section id="houses-screen" class="screen">
+            <div class="main-bg"></div>
+            
+            <div class="houses-carousel-wrapper" style="position: relative; display: flex; align-items: center; gap: 20px; z-index: 10;">
+                <button id="prev-house-btn" class="ink-btn" style="color: #fff; font-size: 4rem; text-shadow: 0 0 10px #000; border: none;">&lt;</button>
+                
+                <div id="intro-passport-card" class="passport-card">
+                    <!-- Colored Top Section -->
+                    <div class="passport-top" id="intro-passport-top">
+                        <!-- Left: Profile Info -->
+                        <div class="passport-profile">
+                            <h2 class="passport-name" id="intro-passport-name">DEPARTMENT</h2>
+                            <h4 class="passport-sub">Overview</h4>
+                            <div class="profile-pic-box">
+                                <span id="intro-passport-icon" style="font-size: 5rem;">❓</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Right: Attributes -->
+                        <div class="passport-attributes">
+                            <div class="attr-box">
+                                <h5 class="attr-label">CORE SKILL</h5>
+                                <h3 class="attr-value" id="intro-passport-skill">???</h3>
+                            </div>
+                            <div class="attr-box">
+                                <h5 class="attr-label">TOOL</h5>
+                                <h3 class="attr-value" id="intro-passport-tool">???</h3>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dark Bottom Section with Return Button -->
+                    <div class="passport-bottom">
+                        <p id="intro-department-description" class="description-text" style="color: #ccc; margin-bottom: 20px;">Description</p>
+                        <button id="close-houses-btn" class="ink-btn" style="color: #fff; border-color: #fff;">Return to Menu</button>
+                    </div>
+                </div>
+
+                <button id="next-house-btn" class="ink-btn" style="color: #fff; font-size: 4rem; text-shadow: 0 0 10px #000; border: none;">&gt;</button>
+            </div>
+        </section>
+
+        <!-- Settings Screen -->
+        <section id="settings-screen" class="screen">
+            <div class="main-bg"></div>
+            <div class="parchment-panel text-center" style="max-height: 90vh; overflow-y: auto;">
+                <h1 class="gothic-title">Ceremony Settings</h1>
+                
+                <div class="settings-grid" style="display: flex; flex-direction: column; gap: 15px; text-align: left; width: 100%; max-width: 400px; margin: 20px auto;">
+                    <div class="setting-item">
+                        <label for="setting-density" style="font-weight: bold; display: block; margin-bottom: 5px;">Firefly Density</label>
+                        <select id="setting-density" class="ink-select" style="width: 100%; padding: 8px; font-family: inherit; background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid var(--parchment-border); border-radius: 4px;">
+                            <option value="none" style="background: var(--bg-color); color: #fff;">None</option>
+                            <option value="low" style="background: var(--bg-color); color: #fff;">Low (100)</option>
+                            <option value="medium" selected style="background: var(--bg-color); color: #fff;">Medium (250)</option>
+                            <option value="high" style="background: var(--bg-color); color: #fff;">High (500)</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="setting-speed" style="font-weight: bold; display: block; margin-bottom: 5px;">Firefly Movement</label>
+                        <select id="setting-speed" class="ink-select" style="width: 100%; padding: 8px; font-family: inherit; background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid var(--parchment-border); border-radius: 4px;">
+                            <option value="still" style="background: var(--bg-color); color: #fff;">Still</option>
+                            <option value="slow" style="background: var(--bg-color); color: #fff;">Slow</option>
+                            <option value="normal" selected style="background: var(--bg-color); color: #fff;">Normal</option>
+                            <option value="fast" style="background: var(--bg-color); color: #fff;">Fast</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="setting-color" style="font-weight: bold; display: block; margin-bottom: 5px;">Firefly Color</label>
+                        <select id="setting-color" class="ink-select" style="width: 100%; padding: 8px; font-family: inherit; background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid var(--parchment-border); border-radius: 4px;">
+                            <option value="gold" selected style="background: var(--bg-color); color: #fff;">Golden Yellow</option>
+                            <option value="green" style="background: var(--bg-color); color: #fff;">Emerald Green</option>
+                            <option value="blue" style="background: var(--bg-color); color: #fff;">Sapphire Blue</option>
+                            <option value="red" style="background: var(--bg-color); color: #fff;">Ruby Red</option>
+                            <option value="purple" style="background: var(--bg-color); color: #fff;">Amethyst Purple</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="setting-direction" style="font-weight: bold; display: block; margin-bottom: 5px;">Firefly Direction</label>
+                        <select id="setting-direction" class="ink-select" style="width: 100%; padding: 8px; font-family: inherit; background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid var(--parchment-border); border-radius: 4px;">
+                            <option value="bottom" selected style="background: var(--bg-color); color: #fff;">Bottom (Rising)</option>
+                            <option value="top" style="background: var(--bg-color); color: #fff;">Top (Falling)</option>
+                            <option value="left" style="background: var(--bg-color); color: #fff;">Left to Right</option>
+                            <option value="right" style="background: var(--bg-color); color: #fff;">Right to Left</option>
+                            <option value="center" style="background: var(--bg-color); color: #fff;">Center (Expanding)</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="setting-style" style="font-weight: bold; display: block; margin-bottom: 5px;">Movement Style</label>
+                        <select id="setting-style" class="ink-select" style="width: 100%; padding: 8px; font-family: inherit; background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid var(--parchment-border); border-radius: 4px;">
+                            <option value="linear" selected style="background: var(--bg-color); color: #fff;">Linear / Floating</option>
+                            <option value="wavy" style="background: var(--bg-color); color: #fff;">Wavy (Sine Wave)</option>
+                            <option value="chaotic" style="background: var(--bg-color); color: #fff;">Chaotic (Random)</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="setting-anim-speed" style="font-weight: bold; display: block; margin-bottom: 5px;">Click Animation Speed</label>
+                        <select id="setting-anim-speed" class="ink-select" style="width: 100%; padding: 8px; font-family: inherit; background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid var(--parchment-border); border-radius: 4px;">
+                            <option value="normal" selected style="background: var(--bg-color); color: #fff;">Normal (Cinematic)</option>
+                            <option value="fast" style="background: var(--bg-color); color: #fff;">Fast</option>
+                            <option value="instant" style="background: var(--bg-color); color: #fff;">Instant</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="setting-volume" style="font-weight: bold; display: block; margin-bottom: 5px;">Music Volume</label>
+                        <input type="range" id="setting-volume" min="0" max="100" value="50" style="width: 100%; accent-color: var(--gold);">
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="setting-pbi-url" style="font-weight: bold; display: block; margin-bottom: 5px;">PowerBI Embed URL</label>
+                        <input type="text" id="setting-pbi-url" class="ink-input" style="width: 100%; padding: 8px; font-family: inherit; background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid var(--parchment-border); border-radius: 4px;" placeholder="Paste PowerBI Publish-to-Web link here...">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 20px; justify-content: center; margin-top: 20px;">
+                    <button id="save-settings-btn" class="ink-btn">Save & Close</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Admin Screen -->
+        <section id="admin-screen" class="screen hp-theme">
+            <div id="pbi-mock-app">
+                <!-- 1. PowerBI Top Header Bar -->
+                <header id="pbi-header">
+                    <div class="pbi-header-left">
+                        <div class="pbi-hamburger">
+                            <span></span><span></span><span></span>
+                        </div>
+                        <div class="pbi-logo">
+                            <div class="pbi-logo-bars">
+                                <span class="pbi-bar-1"></span>
+                                <span class="pbi-bar-2"></span>
+                                <span class="pbi-bar-3"></span>
+                            </div>
+                            <span class="pbi-logo-text">Power BI</span>
+                        </div>
+                        <div class="pbi-divider"></div>
+                        <div class="pbi-breadcrumbs">
+                            <span class="pbi-crumb">Workspaces</span>
+                            <span class="pbi-arrow-separator">/</span>
+                            <span class="pbi-crumb">Auditour Workspace</span>
+                            <span class="pbi-arrow-separator">/</span>
+                            <span class="pbi-crumb active">Recruit Sorting Analytics</span>
+                        </div>
+                    </div>
+                    <div class="pbi-header-right" style="display: flex; gap: 8px;">
+                        <button id="pbi-export-json-btn" class="pbi-header-action-btn" style="background: #0078d4; color: #fff;">
+                            <svg class="pbi-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                            Export JSON
+                        </button>
+                        <button id="pbi-export-btn" class="pbi-header-action-btn" style="background: #107c41; color: #fff;">
+                            <svg class="pbi-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Export CSV
+                        </button>
+                        <button id="pbi-db-btn" class="pbi-header-action-btn" style="background: #333; color: #fff;">
+                            <svg class="pbi-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+                            DB Config
+                        </button>
+                        <button id="pbi-qr-btn" class="pbi-header-action-btn">
+                            <svg class="pbi-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M7 7h.01M17 7h.01M7 17h.01M17 17h.01"></path></svg>
+                            Show QR
+                        </button>
+                        <button id="pbi-theme-btn" class="pbi-header-action-btn" style="background: var(--gold); color: #000; font-weight: bold;">
+                            <svg class="pbi-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                            Change Theme
+                        </button>
+                        <!-- Back to Ceremony button (styled like a PowerBI header item) -->
+                        <button id="pbi-back-btn" class="pbi-header-action-btn">
+                            <svg class="pbi-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                            Back to Ceremony
+                        </button>
+                        <div class="pbi-header-divider"></div>
+                        <div class="pbi-search-container">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pbi-search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="text" placeholder="Search..." disabled>
+                        </div>
+                        <div class="pbi-user-badge">A</div>
+                    </div>
+                </header>
+
+                <div id="pbi-main-layout">
+                    <!-- 2. PowerBI Left Icon Sidebar -->
+                    <aside id="pbi-sidebar">
+                        <div class="pbi-side-item active" title="Home">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        </div>
+                        <div class="pbi-side-item" title="Create">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </div>
+                        <div class="pbi-side-item" title="Browse">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                        </div>
+                        <div class="pbi-side-item" title="Metrics">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        </div>
+                        <div class="pbi-side-item" title="Apps">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        </div>
+                        <div class="pbi-side-item" title="Workspaces">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                        </div>
+                    </aside>
+
+                    <!-- 3. PowerBI Main Canvas Screen -->
+                    <main id="pbi-canvas">
+                        <!-- Top Toolbar of Canvas -->
+                        <div id="pbi-canvas-toolbar">
+                            <span class="pbi-canvas-title">Auditour Ceremony Sorting Analytics (Live)</span>
+                            <div class="pbi-toolbar-actions">
+                                <button class="pbi-tb-btn active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg> Filters</button>
+                                <button class="pbi-tb-btn" id="pbi-refresh-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg> Refresh</button>
+                                <button class="pbi-tb-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg> Export</button>
+                            </div>
+                        </div>
+
+                        <!-- PowerBI Report Sheet Area -->
+                        <div id="pbi-report-page-sheet" style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column;">
+                            <!-- Real PowerBI Iframe (Hidden by default, shown if URL is active) -->
+                            <iframe id="pbi-iframe" src="" frameborder="0" allowFullScreen="true" style="display: none; width: 100%; height: 100%; border: none; flex: 1;"></iframe>
+
+                            <!-- Page 1: Recruit Overview -->
+                            <div class="pbi-page-content active" id="pbi-page-1">
+                                <!-- Top Row: KPI Cards -->
+                                <div class="pbi-kpi-row">
+                                    <div class="pbi-kpi-card">
+                                        <span class="kpi-label">TOTAL RECRUITS SORTED</span>
+                                        <span class="kpi-value" id="kpi-total-recruits">154</span>
+                                        <span class="kpi-footer"><span class="kpi-trend-up">▲ 12%</span> vs last session</span>
+                                    </div>
+                                    <div class="pbi-kpi-card">
+                                        <span class="kpi-label">POPULAR DEPARTMENT</span>
+                                        <span class="kpi-value" id="kpi-popular-dept" style="color: var(--gold);">Advisory</span>
+                                        <span class="kpi-footer" id="kpi-popular-percentage">34% of recruits</span>
+                                    </div>
+                                    <div class="pbi-kpi-card">
+                                        <span class="kpi-label">AVG MATCH CONFIDENCE</span>
+                                        <span class="kpi-value" style="color: #20e2da;">91.4%</span>
+                                        <span class="kpi-footer">Based on point spread</span>
+                                    </div>
+                                    <div class="pbi-kpi-card">
+                                        <span class="kpi-label">DATA UPTIME</span>
+                                        <span class="kpi-value" style="color: #4facfe;">100%</span>
+                                        <span class="kpi-footer">Active Live DB Sync</span>
+                                    </div>
+                                </div>
+
+                                <!-- Middle Row: Chart Visuals -->
+                                <div class="pbi-visuals-grid">
+                                    <!-- Visual 1: Bar Chart -->
+                                    <div class="pbi-visual-card">
+                                        <div class="visual-header">
+                                            <span class="visual-title">Sorting Distribution by Department</span>
+                                        </div>
+                                        <div class="visual-chart-container">
+                                            <canvas id="chart-dept-distribution"></canvas>
+                                        </div>
+                                    </div>
+
+                                    <!-- Visual 2: Doughnut Chart -->
+                                    <div class="pbi-visual-card">
+                                        <div class="visual-header">
+                                            <span class="visual-title">Core Skill Match Breakdown</span>
+                                        </div>
+                                        <div class="visual-chart-container">
+                                            <canvas id="chart-skill-breakdown"></canvas>
+                                        </div>
+                                    </div>
+
+                                    <!-- Visual 3: Line Chart -->
+                                    <div class="pbi-visual-card visual-full-width">
+                                        <div class="visual-header">
+                                            <span class="visual-title">Recruitment Ceremony Sorting Activity (Cumulative)</span>
+                                        </div>
+                                        <div class="visual-chart-container" style="height: 200px;">
+                                            <canvas id="chart-activity-timeline"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Page 2: Response Logs & Live Feed -->
+                            <div class="pbi-page-content" id="pbi-page-2">
+                                <div class="pbi-visual-card visual-full-width" style="height: 100%;">
+                                    <div class="visual-header">
+                                        <span class="visual-title">Live Sorted Recruits Audit Log</span>
+                                        <div>
+                                            <button id="pbi-add-mock-btn" class="pbi-tb-btn" style="display: inline-flex; background: #333; color: #fff; padding: 4px 10px; border-radius: 4px; margin-right: 10px;">+ Add Mock Record</button>
+                                            <span class="pbi-badge">Sync Active</span>
+                                        </div>
+                                    </div>
+                                    <div class="pbi-table-container">
+                                        <table class="pbi-data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Recruit ID</th>
+                                                    <th>Recruit Name</th>
+                                                    <th>Assigned Department</th>
+                                                    <th>Date/Time</th>
+                                                    <th>Match Score Details</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="pbi-logs-table-body">
+                                                <!-- Dynamic logs injected -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PowerBI Bottom Page Navigation bar -->
+                        <footer id="pbi-page-navigation">
+                            <div class="pbi-nav-tabs">
+                                <button class="pbi-tab active" data-target="pbi-page-1">Recruits Overview</button>
+                                <button class="pbi-tab" data-target="pbi-page-2">Live Logs & Feed</button>
+                            </div>
+                            <span class="pbi-nav-zoom">Page 1 of 2</span>
+                        </footer>
+                    </main>
+                </div>
+            </div>
+
+            <!-- QR Code Modal (Hidden by default) -->
+            <div id="qr-modal" class="qr-modal" style="display: none;">
+                <div class="qr-modal-content">
+                    <span id="close-qr-btn" class="close-qr-btn">&times;</span>
+                    <h2 style="color: #333; margin-top: 0;">Scan to Join!</h2>
+                    <div id="qr-code-container" style="display: flex; justify-content: center; margin: 20px 0;"></div>
+                    <p style="color: #666; font-size: 14px;">Point your camera at the screen to start your sorting ceremony.</p>
+                </div>
+            </div>
+            <!-- Database Config Modal (Hidden by default) -->
+            <div id="db-modal" class="qr-modal" style="display: none;">
+                <div class="qr-modal-content" style="max-width: 500px; text-align: left; padding: 30px;">
+                    <span id="close-db-btn" class="close-qr-btn">&times;</span>
+                    <h2 style="color: #333; margin-top: 0; margin-bottom: 20px; font-family: 'Segoe UI', sans-serif;">Database Integration</h2>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: bold; color: #333; font-family: 'Segoe UI', sans-serif;">Storage Provider:</label>
+                        <select id="db-provider-select" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; font-family: 'Segoe UI', sans-serif;">
+                            <option value="local">Local Storage (Mock Only)</option>
+                            <option value="firebase">Google Firebase (Realtime DB)</option>
+                            <option value="sharepoint">Azure SharePoint (List API)</option>
+                        </select>
+                    </div>
+
+                    <!-- Firebase Fields -->
+                    <div id="db-firebase-fields" style="display: none; display: flex; flex-direction: column; gap: 10px;">
+                        <p style="color: #666; font-size: 0.85rem; font-family: 'Segoe UI', sans-serif;">You need to provide your Firebase Web App configuration values.</p>
+                        <input type="text" id="fb-apiKey" placeholder="API Key" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <input type="text" id="fb-authDomain" placeholder="Auth Domain (e.g., project.firebaseapp.com)" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <input type="text" id="fb-databaseURL" placeholder="Database URL (e.g., https://project-default-rtdb.firebaseio.com)" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <input type="text" id="fb-projectId" placeholder="Project ID" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <input type="text" id="fb-appId" placeholder="App ID" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
+
+                    <!-- Azure SharePoint Fields -->
+                    <div id="db-sharepoint-fields" style="display: none; display: flex; flex-direction: column; gap: 10px;">
+                        <p style="color: #666; font-size: 0.85rem; font-family: 'Segoe UI', sans-serif;">You need to create an Azure AD App Registration with Sites.ReadWrite.All permissions.</p>
+                        <input type="text" id="sp-tenantId" placeholder="Azure Tenant ID" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <input type="text" id="sp-clientId" placeholder="Client ID (App ID)" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <input type="password" id="sp-clientSecret" placeholder="Client Secret" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <input type="text" id="sp-siteId" placeholder="SharePoint Site ID" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                        <input type="text" id="sp-listId" placeholder="SharePoint List ID" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
+
+                    <div style="margin-top: 25px; text-align: right;">
+                        <button id="save-db-btn" style="background: #107c41; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; font-family: 'Segoe UI', sans-serif;">Save Connection</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Flash overlay for reveal -->
+        <div id="flash-overlay"></div>
+    </div>
+
+    <!-- Global Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- ES Module Imports via ESM.sh and CDN -->
+    <script type="importmap">
+        {
+            "imports": {
+                "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+                "firebase/database": "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js"
+            }
+        }
+    </script>
+    
+    <script type="module" src="firebase-config.js"></script>
+    <script type="module" src="data_questions.js"></script>
+    <script type="module" src="scene.js"></script>
+    <script type="module" src="app_v2.js"></script>
+</body>
+</html>
