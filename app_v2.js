@@ -6,6 +6,7 @@ import { init3DScene, triggerInteractionAnimation, triggerRevealAnimation, updat
 let currentQuestionIndex = 0;
 let sessionQuestions = [];
 let userAnswers = [];
+let rawAnswers = [];
 let scores = {
     CORE_AUDIT: 0,
     AOA: 0,
@@ -53,7 +54,7 @@ let settings = {
     animSpeed: 'normal',
     volume: 50,
     pbiUrl: '',
-    schools: 'Ateneo de Manila, De La Salle University, University of the Philippines, University of Santo Tomas'
+    schools: 'University of Santo Tomas, Far Eastern University, Polytechnic University of the Philippines'
 };
 let animationSpeedMultiplier = 1.0;
 
@@ -578,6 +579,48 @@ function drawDashboard(history) {
             tableBody.appendChild(tr);
         });
     }
+
+    // Populate Page 4 Raw Data
+    renderRawDataTable(history);
+}
+
+function renderRawDataTable(history) {
+    const tableBody = document.getElementById('pbi-raw-table-body');
+    if (!tableBody) return;
+    tableBody.innerHTML = '';
+    
+    // Sort by timestamp newest first
+    const sortedHistory = [...history].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    sortedHistory.forEach(item => {
+        const tr = document.createElement('tr');
+        
+        const tdName = document.createElement('td');
+        tdName.textContent = item.name || 'Unknown';
+        tr.appendChild(tdName);
+        
+        const tdSchool = document.createElement('td');
+        tdSchool.textContent = item.school || 'N/A';
+        tr.appendChild(tdSchool);
+        
+        const tdPref = document.createElement('td');
+        tdPref.textContent = item.preferredSSL || 'N/A';
+        tr.appendChild(tdPref);
+        
+        const tdAssigned = document.createElement('td');
+        tdAssigned.textContent = item.dept || 'N/A';
+        tr.appendChild(tdAssigned);
+        
+        // Ensure rawAnswers exists
+        const answers = item.rawAnswers || [];
+        for (let i = 0; i < 8; i++) {
+            const tdQ = document.createElement('td');
+            tdQ.textContent = answers[i] || '';
+            tr.appendChild(tdQ);
+        }
+        
+        tableBody.appendChild(tr);
+    });
 }
 
 function setupPowerBITabs() {
@@ -596,9 +639,10 @@ function setupPowerBITabs() {
             
             const zoomLabel = document.querySelector('.pbi-nav-zoom');
             if (zoomLabel) {
-                if (targetId === 'pbi-page-1') zoomLabel.textContent = "Page 1 of 3";
-                else if (targetId === 'pbi-page-2') zoomLabel.textContent = "Page 2 of 3";
-                else if (targetId === 'pbi-page-3') zoomLabel.textContent = "Page 3 of 3";
+                if (targetId === 'pbi-page-1') zoomLabel.textContent = "Page 1 of 4";
+                else if (targetId === 'pbi-page-2') zoomLabel.textContent = "Page 2 of 4";
+                else if (targetId === 'pbi-page-3') zoomLabel.textContent = "Page 3 of 4";
+                else if (targetId === 'pbi-page-4') zoomLabel.textContent = "Page 4 of 4";
             }
         });
     });
@@ -664,6 +708,11 @@ function animateSnitchRandomly() {
 // Initialize App
 async function initApp() {
     init3DScene();
+    
+    // Wait for fonts to load before revealing UI to prevent FOUT
+    await document.fonts.ready;
+    document.getElementById('splash-screen').classList.add('active');
+    
     animateSnitchRandomly();
     loadSettings();
     loadDbConfig();
@@ -760,6 +809,24 @@ async function initApp() {
 
     document.getElementById('open-settings-btn').addEventListener('click', openSettingsScreen);
     document.getElementById('save-settings-btn').addEventListener('click', closeSettingsScreen);
+    
+    // QR Modal Logic
+    document.getElementById('open-qr-btn').addEventListener('click', () => {
+        playClickSound();
+        const qrModal = document.getElementById('share-modal');
+        const qrImg = document.getElementById('share-qr-img');
+        const currentUrl = encodeURIComponent(window.location.href);
+        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${currentUrl}`;
+        qrModal.style.display = 'flex';
+        gsap.fromTo(qrModal.querySelector('.modal-content'), { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: animDuration(0.4), ease: "back.out(1.5)" });
+    });
+    
+    document.getElementById('close-share-btn').addEventListener('click', () => {
+        try { playClickSound(); } catch (e) {}
+        const qrModal = document.getElementById('share-modal');
+        if (qrModal) qrModal.style.display = 'none';
+    });
+
     document.getElementById('open-admin-btn').addEventListener('click', openAdminScreen);
     document.getElementById('pbi-back-btn').addEventListener('click', closeAdminScreen);
     document.getElementById('pbi-refresh-btn').addEventListener('click', renderPowerBICharts);
@@ -786,8 +853,11 @@ async function initApp() {
                 FAAS: Math.floor(Math.random() * 20)
             };
             
+            // Generate mock raw answers
+            const mockRawAnswers = ["A. Mock Answer 1", "B. Mock Answer 2", "C. Mock Answer 3", "D. Mock Answer 4", "E. Mock Answer 5", "A. Mock Answer 6", "B. Mock Answer 7", "C. Mock Answer 8"];
+            
             // Save to Firebase Database
-            saveSortingResult(randomName, randomDept, mockScores, randomSchool, randomPref);
+            saveSortingResult(randomName, randomDept, mockScores, mockRawAnswers, randomSchool, randomPref);
             
             // Save to Local PowerBI History (Legacy)
             saveResultToHistory(randomDept, randomName, randomSchool, randomPref);
@@ -863,6 +933,53 @@ async function initApp() {
             const link = document.createElement("a");
             link.setAttribute("href", url);
             link.setAttribute("download", `auditour_sorting_data_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    }
+
+    // CSV Export functionality (Raw Answers)
+    const exportRawBtn = document.getElementById('pbi-export-csv-btn');
+    if (exportRawBtn) {
+        exportRawBtn.addEventListener('click', () => {
+            let history = [];
+            try {
+                history = JSON.parse(localStorage.getItem('sorting_history')) || [];
+            } catch (e) { history = []; }
+            
+            if (history.length === 0) {
+                alert("No raw data to export!");
+                return;
+            }
+            
+            let csvContent = "data:text/csv;charset=utf-8,";
+            // Header row matches the table
+            csvContent += "Name,School,Preferred SSL,Assigned SSL,Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8\n";
+            
+            history.forEach(item => {
+                const ans = item.rawAnswers || [];
+                const rowData = [
+                    `"${item.name || ''}"`,
+                    `"${item.school || ''}"`,
+                    `"${item.preferredSSL || ''}"`,
+                    `"${item.dept || ''}"`,
+                    `"${ans[0] || ''}"`,
+                    `"${ans[1] || ''}"`,
+                    `"${ans[2] || ''}"`,
+                    `"${ans[3] || ''}"`,
+                    `"${ans[4] || ''}"`,
+                    `"${ans[5] || ''}"`,
+                    `"${ans[6] || ''}"`,
+                    `"${ans[7] || ''}"`
+                ];
+                csvContent += rowData.join(",") + "\n";
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `copilot_raw_answers_${new Date().toISOString().slice(0,10)}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -973,6 +1090,8 @@ function applySettings() {
             pbiIframe.src = '';
         }
     }
+    
+    populateSchoolDropdown();
 
     const densitySelect = document.getElementById('setting-density');
     const speedSelect = document.getElementById('setting-speed');
@@ -1226,14 +1345,14 @@ function startGame() {
         triggerInteractionAnimation();
         switchScreen(screens.intro, screens.question);
         
-        // Pick 8 random questions
+        // Pick 8 questions in sequential order
         if (!activeQuestions || !Array.isArray(activeQuestions)) throw new Error("activeQuestions array is not loaded correctly.");
-        const shuffledQuestions = [...activeQuestions].sort(() => Math.random() - 0.5);
-        sessionQuestions = shuffledQuestions.slice(0, 8);
+        sessionQuestions = [...activeQuestions].slice(0, 8);
         currentQuestionIndex = 0;
         
         // reset tracking arrays and scores
         userAnswers = [];
+        rawAnswers = [];
         for(const key of Object.keys(scores)) scores[key] = 0;
         
         loadQuestion(0);
@@ -1341,6 +1460,7 @@ function renderQuestionData(q) {
 function handleAnswer(points, selectedBtn) {
     // Save to userAnswers array
     userAnswers[currentQuestionIndex] = points;
+    rawAnswers[currentQuestionIndex] = selectedBtn.innerText.trim();
     
     // Visually highlight selection
     const allBtns = document.querySelectorAll('.option-btn');
@@ -1510,11 +1630,13 @@ function finishSorting() {
         updatePassportUI(dept);
         
         if (affinityId) {
-            affinityBox.style.display = 'flex';
-            passportAffinity.textContent = DEPARTMENTS[affinityId].name;
-            passportAffinity.style.color = DEPARTMENTS[affinityId].accentColor || '#ffd700';
+            if (affinityBox) affinityBox.style.display = 'flex';
+            if (passportAffinity) {
+                passportAffinity.textContent = DEPARTMENTS[affinityId].name;
+                passportAffinity.style.color = DEPARTMENTS[affinityId].accentColor || '#ffd700';
+            }
         } else {
-            affinityBox.style.display = 'none';
+            if (affinityBox) affinityBox.style.display = 'none';
         }
 
         if (animationSpeedMultiplier > 0) {
@@ -1557,7 +1679,7 @@ function finishSorting() {
         triggerRevealAnimation(dept.color);
 
         // Save to Firebase/SharePoint
-        saveSortingResult(currentRecruitName, dept.name, scores, currentSchool, currentPreferredSSL);
+        saveSortingResult(currentRecruitName, dept.name, scores, rawAnswers, currentSchool, currentPreferredSSL);
 
         // Save to local PowerBI history tracker
         saveResultToHistory(dept.name, currentRecruitName, currentSchool, currentPreferredSSL);

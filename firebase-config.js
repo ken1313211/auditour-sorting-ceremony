@@ -29,11 +29,12 @@ export function initDatabase(config) {
 }
 
 // Function to save a sorting entry
-export async function saveSortingResult(userName, departmentId, answers, school, preferredSSL) {
+export async function saveSortingResult(userName, departmentId, scores, rawAnswers, school, preferredSSL) {
     const payload = {
         userName: userName || "Anonymous Student",
         department: departmentId,
-        answers: answers,
+        scores: scores || {},
+        rawAnswers: rawAnswers || [],
         school: school || "",
         preferredSSL: preferredSSL || "",
         timestamp: Date.now(),
@@ -55,32 +56,9 @@ export async function saveSortingResult(userName, departmentId, answers, school,
         }
     } 
     else if (currentConfig.provider === 'sharepoint') {
-        // SharePoint List Graph API Stub
         console.log("STUB: Preparing to save to SharePoint List");
-        console.log(`Tenant: ${currentConfig.sp_tenantId}, Site: ${currentConfig.sp_siteId}, List: ${currentConfig.sp_listId}`);
-        console.log("Payload:", payload);
-        
-        // Example Graph API Call (Requires Bearer Token from MSAL)
-        /*
-        fetch(`https://graph.microsoft.com/v1.0/sites/${currentConfig.sp_siteId}/lists/${currentConfig.sp_listId}/items`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer YOUR_ACCESS_TOKEN`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                fields: {
-                    Title: payload.userName,
-                    Department: payload.department,
-                    Timestamp: payload.isoTime,
-                    ScoreData: JSON.stringify(payload.answers)
-                }
-            })
-        });
-        */
     }
     else {
-        // Local Mode - handled by the UI tracker history natively in app.js
         console.log("Running in Local Mode. Handled by local history tracker.");
     }
 }
@@ -107,7 +85,9 @@ export async function fetchSortingResults() {
                         school: item.school || "",
                         preferredSSL: item.preferredSSL || "",
                         timestamp: item.isoTime || new Date(item.timestamp).toISOString(),
-                        details: "Cloud Firebase entry"
+                        details: "Cloud Firebase entry",
+                        rawAnswers: item.rawAnswers || [],
+                        scores: item.scores || {}
                     };
                 });
                 return list;

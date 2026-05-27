@@ -83,7 +83,7 @@ function renderQuestionsEditor() {
             optRow.appendChild(optInput);
 
             // Points inputs for each SSL
-            const depts = ['CORE_AUDIT', 'AOA', 'DID', 'DIGITAL', 'TECH_RISK'];
+            const depts = ['CORE_AUDIT', 'AOA', 'DID', 'DIGITAL', 'TECH_RISK', 'FAAS'];
             depts.forEach(dept => {
                 const ptBox = document.createElement('div');
                 ptBox.style.cssText = 'display: flex; align-items: center; gap: 4px;';
@@ -108,6 +108,9 @@ function renderQuestionsEditor() {
                 } else if (dept === 'TECH_RISK') {
                     deptLabelColor = '#ff5757';
                     friendlyName = 'Tech Risk';
+                } else if (dept === 'FAAS') {
+                    deptLabelColor = '#00b4d8';
+                    friendlyName = 'FAAS';
                 }
                 
                 label.style.color = deptLabelColor;

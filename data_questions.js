@@ -129,7 +129,7 @@ export const QUESTIONS = [
         options: [
             { text: "A. Reviewing financial statements", points: { CORE_AUDIT: 2, FAAS: 1 } },
             { text: "B. Improving efficiency via tools/automation", points: { AOA: 1, DID: 1, DIGITAL: 2 } },
-            { text: "C. Working with large datasets", points: { DID: 1, DIGITAL: 2, TECH_RISK: 1, FAAS: 1 } },
+            { text: "C. Working with large datasets", points: { AOA: 1, DID: 2, DIGITAL: 1, TECH_RISK: 1 } },
             { text: "D. Testing processes or controls", points: { CORE_AUDIT: 1, AOA: 1, TECH_RISK: 2 } },
             { text: "E. Advising on accounting", points: { FAAS: 2 } }
         ]
@@ -138,7 +138,7 @@ export const QUESTIONS = [
         question: "Q2. Which type of tasks do you usually perform well in?",
         options: [
             { text: "A. Working with numbers, checking accuracy, and reconciling differences", points: { CORE_AUDIT: 2, AOA: 2, DID: 1, DIGITAL: 1, FAAS: 1 } },
-            { text: "B. Organizing tasks, improving workflows, or managing timelines", points: { DID: 2 } },
+            { text: "B. Organizing tasks, improving workflows, or managing timelines", points: { AOA: 2 } },
             { text: "C. Working with data sets, trends, or analysis (even in projects)", points: { AOA: 1, DID: 2, DIGITAL: 2, TECH_RISK: 1 } },
             { text: "D. Reviewing processes and identifying gaps or risks", points: { CORE_AUDIT: 1, TECH_RISK: 2 } },
             { text: "E. Researching topics and explaining complex ideas clearly", points: { FAAS: 2 } }
@@ -147,7 +147,7 @@ export const QUESTIONS = [
     {
         question: "Q3. How do you prefer to work?",
         options: [
-            { text: "A. Structured, checklist-based", points: { AOA: 2, DID: 1, FAAS: 1 } },
+            { text: "A. Structured, checklist-based", points: { AOA: 2, DID: 1, TECH_RISK: 1 } },
             { text: "B. High-volume & efficient", points: { AOA: 1, DIGITAL: 1 } },
             { text: "C. Problem-solving with data", points: { DID: 2, DIGITAL: 2, FAAS: 1 } },
             { text: "D. Investigative & risk-focused", points: { CORE_AUDIT: 2, TECH_RISK: 2 } },
