@@ -499,7 +499,7 @@ function drawDashboard(history) {
     }
 
     // Aggregations for Traits and Secondary Affinity
-    const MAX_SCORES_PBI = { CORE_AUDIT: 24, AOA: 27, DID: 24, DIGITAL: 24, TECH_RISK: 24, FAAS: 24 };
+    const MAX_SCORES_PBI = calculateMaxScores(activeQuestions);
     const deptMapping = { "Core Audit": "CORE_AUDIT", "AOA": "AOA", "DID": "DID", "Digital": "DIGITAL", "Tech Risk": "TECH_RISK", "FAAS": "FAAS" };
     
     let traitTotals = { Structure: 0, Analytical: 0, Strategic: 0, Tech: 0 };
@@ -981,6 +981,11 @@ async function initApp() {
             link.click();
             document.body.removeChild(link);
         });
+    }
+
+    const canvasExportBtn = document.getElementById('pbi-canvas-export-btn');
+    if (canvasExportBtn && exportBtn) {
+        canvasExportBtn.addEventListener('click', () => exportBtn.click());
     }
 
     const exportJsonBtn = document.getElementById('pbi-export-json-btn');
@@ -1550,6 +1555,32 @@ function handleAnswer(points, selectedBtn) {
     triggerInteractionAnimation();
 }
 
+function calculateMaxScores(questionsArray) {
+    const maxScores = { CORE_AUDIT: 0, AOA: 0, DID: 0, DIGITAL: 0, TECH_RISK: 0, FAAS: 0 };
+    questionsArray.forEach(q => {
+        let maxForQ = { CORE_AUDIT: 0, AOA: 0, DID: 0, DIGITAL: 0, TECH_RISK: 0, FAAS: 0 };
+        if (q.options) {
+            q.options.forEach(opt => {
+                if (opt.points) {
+                    for (const [dept, pts] of Object.entries(opt.points)) {
+                        if (maxForQ[dept] !== undefined) {
+                            maxForQ[dept] = Math.max(maxForQ[dept], pts);
+                        }
+                    }
+                }
+            });
+        }
+        for (const [dept, maxPts] of Object.entries(maxForQ)) {
+            maxScores[dept] += maxPts;
+        }
+    });
+    // Safeguard to prevent division by zero
+    for (const dept of Object.keys(maxScores)) {
+        if (maxScores[dept] === 0) maxScores[dept] = 1;
+    }
+    return maxScores;
+}
+
 function finishSorting() {
     progressBar.style.width = `100%`;
 
@@ -1563,15 +1594,8 @@ function finishSorting() {
         }
     });
 
-    // Max score configuration from template
-    const MAX_SCORES = {
-        CORE_AUDIT: 24,
-        AOA: 27,
-        DID: 24,
-        DIGITAL: 24,
-        TECH_RISK: 24,
-        FAAS: 24
-    };
+    // Max score configuration dynamically calculated from actual questions asked
+    const MAX_SCORES = calculateMaxScores(sessionQuestions);
 
     // Calculate normalized percentage scores
     let normalizedScores = {};
