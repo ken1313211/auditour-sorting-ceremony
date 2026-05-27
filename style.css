@@ -1857,6 +1857,10 @@ body {
             "abandon abandon" !important;
     }
     
+    .quiz-nav-container.first-question #prev-quiz-btn {
+        display: none !important;
+    }
+    
     .quiz-nav-container.first-question #next-quiz-btn {
         text-align: center;
     }
