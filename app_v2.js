@@ -1,5 +1,5 @@
 import { QUESTIONS, DEPARTMENTS } from './data_questions.js';
-import { saveSortingResult, initDatabase, fetchSortingResults } from './firebase-config.js';
+import { saveSortingResult, initDatabase, fetchSortingResults, fetchCustomScores } from './firebase-config.js';
 import { init3DScene, triggerInteractionAnimation, triggerRevealAnimation, updateGraphicsSettings } from './scene.js';
 
 // State
@@ -7,11 +7,14 @@ let currentQuestionIndex = 0;
 let sessionQuestions = [];
 let userAnswers = [];
 let scores = {
+    CORE_AUDIT: 0,
     AOA: 0,
-    ADN: 0,
+    DID: 0,
+    DIGITAL: 0,
     TECH_RISK: 0,
-    DID: 0
+    FAAS: 0
 };
+let activeQuestions = [];
 
 // Sound Context
 let audioCtx = null;
@@ -49,7 +52,8 @@ let settings = {
     style: 'linear',
     animSpeed: 'normal',
     volume: 50,
-    pbiUrl: ''
+    pbiUrl: '',
+    schools: 'Ateneo de Manila, De La Salle University, University of the Philippines, University of Santo Tomas'
 };
 let animationSpeedMultiplier = 1.0;
 
@@ -94,6 +98,10 @@ const deptKeys = Object.keys(DEPARTMENTS);
 let chartDept = null;
 let chartSkill = null;
 let chartTimeline = null;
+let chartPrefVsPlacement = null;
+let chartSchoolPipeline = null;
+let chartCohortTraits = null;
+let chartSecondaryAffinity = null;
 
 function seedHistoryIfNeeded() {
     let history = [];
@@ -106,20 +114,24 @@ function seedHistoryIfNeeded() {
         history = [];
     }
     
-    const hasOldDepts = history.some(item => ["Engineering", "Marketing", "Design", "Operations"].includes(item.dept));
+    const hasOldDepts = history.some(item => ["Engineering", "Marketing", "Design", "Operations", "ADN", "Tech Risk"].includes(item.dept));
     
     if (!history || history.length === 0 || hasOldDepts) {
         history = [];
-        const depts = ["AOA", "ADN", "Tech Risk", "DID"];
+        const depts = ["Core Audit", "AOA", "DID", "Digital", "Tech Risk"];
         const mockNames = ["Alex Rivera", "Jamie Chen", "Taylor Smith", "Jordan Lee", "Casey Jones", "Morgan Davis", "Avery Clark", "Riley Miller"];
+        const schools = ["Ateneo de Manila", "De La Salle University", "University of the Philippines", "University of Santo Tomas"];
         const startT = Date.now() - 7 * 24 * 60 * 60 * 1000; // 7 days ago
         for (let i = 0; i < 142; i++) {
             const randomDept = depts[Math.floor(Math.random() * depts.length)];
             const randomName = mockNames[Math.floor(Math.random() * mockNames.length)];
+            const randomSchool = schools[Math.floor(Math.random() * schools.length)];
             const randomTime = new Date(startT + Math.random() * (Date.now() - startT));
             history.push({
                 id: "REC-" + (1000 + i),
                 name: randomName,
+                school: randomSchool,
+                preferredSSL: depts[Math.floor(Math.random() * depts.length)],
                 dept: randomDept,
                 timestamp: randomTime.toISOString(),
                 details: "Automated point match (90%+)"
@@ -131,7 +143,7 @@ function seedHistoryIfNeeded() {
     }
 }
 
-function saveResultToHistory(deptName, recruitName) {
+function saveResultToHistory(deptName, recruitName, school, preferredSSL) {
     let history = [];
     try {
         const saved = localStorage.getItem('sorting_history');
@@ -146,6 +158,8 @@ function saveResultToHistory(deptName, recruitName) {
         id: "REC-" + Math.floor(1000 + Math.random() * 9000),
         name: recruitName || "Anonymous User",
         dept: deptName,
+        school: school || "N/A",
+        preferredSSL: preferredSSL || "N/A",
         timestamp: new Date().toISOString(),
         details: "Live ceremony assignment"
     });
@@ -156,13 +170,13 @@ function saveResultToHistory(deptName, recruitName) {
 function renderPowerBICharts() {
     if (dbConfig && dbConfig.provider === 'firebase') {
         fetchSortingResults().then(fbHistory => {
-            let history = fbHistory || [];
-            if (fbHistory && fbHistory.length > 0) {
-                localStorage.setItem('sorting_history', JSON.stringify(history));
+            if (fbHistory !== null && fbHistory !== undefined) {
+                localStorage.setItem('sorting_history', JSON.stringify(fbHistory));
+                drawDashboard(fbHistory);
             } else {
-                history = JSON.parse(localStorage.getItem('sorting_history')) || [];
+                const history = JSON.parse(localStorage.getItem('sorting_history')) || [];
+                drawDashboard(history);
             }
-            drawDashboard(history);
         }).catch(e => {
             console.error("Firebase fetch error:", e);
             const history = JSON.parse(localStorage.getItem('sorting_history')) || [];
@@ -223,27 +237,30 @@ function drawDashboard(history) {
     document.getElementById('kpi-total-recruits').textContent = totalRecruits;
 
     const deptCounts = {
+        "Core Audit": 0,
         "AOA": 0,
-        "ADN": 0,
+        "DID": 0,
+        "Digital": 0,
         "Tech Risk": 0,
-        "DID": 0
+        "FAAS": 0
     };
 
     history.forEach(item => {
-        if (deptCounts[item.dept] !== undefined) {
+        if (item.dept && deptCounts[item.dept] !== undefined) {
             deptCounts[item.dept]++;
-        } else {
-            // Match substring just in case
+        } else if (item.dept) {
             const name = item.dept.toLowerCase();
-            if (name.includes('aoa')) deptCounts["AOA"]++;
-            else if (name.includes('adn')) deptCounts["ADN"]++;
-            else if (name.includes('tech') || name.includes('risk')) deptCounts["Tech Risk"]++;
+            if (name.includes('core') || name.includes('audit')) deptCounts["Core Audit"]++;
+            else if (name.includes('aoa')) deptCounts["AOA"]++;
             else if (name.includes('did')) deptCounts["DID"]++;
+            else if (name.includes('digital')) deptCounts["Digital"]++;
+            else if (name.includes('tech') || name.includes('risk')) deptCounts["Tech Risk"]++;
+            else if (name.includes('faas') || name.includes('advisory')) deptCounts["FAAS"]++;
         }
     });
 
     // Find popular department
-    let popularDeptName = "AOA";
+    let popularDeptName = "Core Audit";
     let popularCount = -1;
     for (const [dept, count] of Object.entries(deptCounts)) {
         if (count > popularCount) {
@@ -255,17 +272,55 @@ function drawDashboard(history) {
     const popularPct = totalRecruits > 0 ? Math.round((popularCount / totalRecruits) * 100) : 0;
     document.getElementById('kpi-popular-percentage').textContent = `${popularPct}% of recruits`;
 
+    // Find top preferred SSL
+    const preferredCounts = {
+        "Core Audit": 0,
+        "AOA": 0,
+        "DID": 0,
+        "Digital": 0,
+        "Tech Risk": 0,
+        "FAAS": 0
+    };
+    history.forEach(item => {
+        if (item.preferredSSL && preferredCounts[item.preferredSSL] !== undefined) {
+            preferredCounts[item.preferredSSL]++;
+        } else if (item.preferredSSL) {
+            const name = item.preferredSSL.toLowerCase();
+            if (name.includes('core') || name.includes('audit')) preferredCounts["Core Audit"]++;
+            else if (name.includes('aoa')) preferredCounts["AOA"]++;
+            else if (name.includes('did')) preferredCounts["DID"]++;
+            else if (name.includes('digital')) preferredCounts["Digital"]++;
+            else if (name.includes('tech') || name.includes('risk')) preferredCounts["Tech Risk"]++;
+            else if (name.includes('faas') || name.includes('advisory')) preferredCounts["FAAS"]++;
+        }
+    });
+    let topPreferredSSL = "N/A";
+    let topPreferredCount = -1;
+    for (const [dept, count] of Object.entries(preferredCounts)) {
+        if (count > topPreferredCount) {
+            topPreferredCount = count;
+            topPreferredSSL = dept;
+        }
+    }
+    const kpiPrefDept = document.getElementById('kpi-preferred-dept');
+    if (kpiPrefDept) kpiPrefDept.textContent = topPreferredSSL;
+    const kpiPrefPercentage = document.getElementById('kpi-preferred-percentage');
+    if (kpiPrefPercentage) {
+        const prefPct = totalRecruits > 0 ? Math.round((topPreferredCount / totalRecruits) * 100) : 0;
+        kpiPrefPercentage.textContent = `${prefPct}% of recruits`;
+    }
+
     // 1. Bar Chart: Department Distribution
     const ctxDept = document.getElementById('chart-dept-distribution').getContext('2d');
     if (chartDept) chartDept.destroy();
     chartDept = new Chart(ctxDept, {
         type: 'bar',
         data: {
-            labels: ['AOA', 'ADN', 'Tech Risk', 'DID'],
+            labels: ['Core Audit', 'AOA', 'DID', 'Digital', 'Tech Risk', 'FAAS'],
             datasets: [{
                 label: 'Sorted Recruits',
-                data: [deptCounts['AOA'], deptCounts['ADN'], deptCounts['Tech Risk'], deptCounts['DID']],
-                backgroundColor: ['#ffd700', '#38b6ff', '#ff5757', '#39ff14'],
+                data: [deptCounts['Core Audit'], deptCounts['AOA'], deptCounts['DID'], deptCounts['Digital'], deptCounts['Tech Risk'], deptCounts['FAAS']],
+                backgroundColor: ['#d4af37', '#ff8c00', '#38b6ff', '#39ff14', '#ff5757', '#00b4d8'],
                 borderRadius: 4
             }]
         },
@@ -285,11 +340,12 @@ function drawDashboard(history) {
     if (chartSkill) chartSkill.destroy();
 
     const skillCounts = {
-        'Quality & Process': Math.round(deptCounts['AOA'] * 0.95),
-        'Analytics & Insights': Math.round(deptCounts['ADN'] * 0.90),
-        'Security & Compliance': Math.round(deptCounts['Tech Risk'] * 0.92),
-        'Dev & Engineering': Math.round(deptCounts['DID'] * 0.88),
-        'Strategy Plan': Math.round((deptCounts['AOA'] + deptCounts['ADN']) * 0.15)
+        'Accuracy & Integrity': Math.round(deptCounts['Core Audit'] * 0.95),
+        'Process & Consistency': Math.round(deptCounts['AOA'] * 0.90),
+        'Data Prep & Validation': Math.round(deptCounts['DID'] * 0.92),
+        'Automation & Tech': Math.round(deptCounts['Digital'] * 0.88),
+        'Security & Compliance': Math.round(deptCounts['Tech Risk'] * 0.94),
+        'Research & Advisory': Math.round(deptCounts['FAAS'] * 0.93)
     };
 
     chartSkill = new Chart(ctxSkill, {
@@ -298,7 +354,7 @@ function drawDashboard(history) {
             labels: Object.keys(skillCounts),
             datasets: [{
                 data: Object.values(skillCounts),
-                backgroundColor: ['#ffd700', '#38b6ff', '#ff5757', '#39ff14', '#cda73b'],
+                backgroundColor: ['#d4af37', '#ff8c00', '#38b6ff', '#39ff14', '#ff5757', '#00b4d8'],
                 borderWidth: 1,
                 borderColor: '#141414'
             }]
@@ -315,50 +371,156 @@ function drawDashboard(history) {
         }
     });
 
-    // 3. Line Chart: Activity Timeline
-    const ctxTimeline = document.getElementById('chart-activity-timeline').getContext('2d');
-    if (chartTimeline) chartTimeline.destroy();
-
-    const timelineData = [];
-    const timelineLabels = [];
-    
-    for (let d = 7; d >= 0; d--) {
-        const date = new Date();
-        date.setDate(date.getDate() - d);
-        const dayStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        timelineLabels.push(dayStr);
-
-        const dayEnd = date.getTime();
-        const countUpToDay = history.filter(item => new Date(item.timestamp).getTime() <= dayEnd).length;
-        timelineData.push(countUpToDay);
+    // 3. Grouped Bar: Preference vs Placement
+    const ctxPref = document.getElementById('chart-pref-vs-placement');
+    if (ctxPref) {
+        if (chartPrefVsPlacement) chartPrefVsPlacement.destroy();
+        chartPrefVsPlacement = new Chart(ctxPref.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['Core Audit', 'AOA', 'DID', 'Digital', 'Tech Risk', 'FAAS'],
+                datasets: [
+                    {
+                        label: 'Preferred (Expected)',
+                        data: [preferredCounts['Core Audit'], preferredCounts['AOA'], preferredCounts['DID'], preferredCounts['Digital'], preferredCounts['Tech Risk'], preferredCounts['FAAS']],
+                        backgroundColor: '#555555',
+                        borderRadius: 2
+                    },
+                    {
+                        label: 'Placed (Actual)',
+                        data: [deptCounts['Core Audit'], deptCounts['AOA'], deptCounts['DID'], deptCounts['Digital'], deptCounts['Tech Risk'], deptCounts['FAAS']],
+                        backgroundColor: ['#d4af37', '#ff8c00', '#38b6ff', '#39ff14', '#ff5757', '#00b4d8'],
+                        borderRadius: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'top', labels: { color: '#eaeaea', font: { size: 10 } } } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#2c2c2c' }, ticks: { color: '#858585' } },
+                    x: { grid: { display: false }, ticks: { color: '#858585' } }
+                }
+            }
+        });
     }
 
-    chartTimeline = new Chart(ctxTimeline, {
-        type: 'line',
-        data: {
-            labels: timelineLabels,
-            datasets: [{
-                label: 'Cumulative Sorted',
-                data: timelineData,
-                borderColor: '#f2c811',
-                backgroundColor: 'rgba(242, 200, 17, 0.05)',
-                fill: true,
-                tension: 0.3,
-                borderWidth: 2,
-                pointRadius: 2,
-                pointBackgroundColor: '#f2c811'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: '#2c2c2c' }, ticks: { color: '#858585', font: { size: 10 } } },
-                x: { grid: { color: '#2c2c2c' }, ticks: { color: '#858585', font: { size: 10 } } }
-            }
-        }
+    // Prepare data for School Pipeline, Traits, and Secondary Affinity
+    const schools = [...new Set(history.map(item => item.school).filter(s => s && s.trim() !== ""))];
+    const dsColors = ['#d4af37', '#ff8c00', '#38b6ff', '#39ff14', '#ff5757', '#00b4d8'];
+    const deptKeysArr = ['Core Audit', 'AOA', 'DID', 'Digital', 'Tech Risk', 'FAAS'];
+    
+    const schoolDatasets = deptKeysArr.map((dept, index) => {
+        return {
+            label: dept,
+            data: schools.map(sch => history.filter(h => h.school === sch && h.dept === dept).length),
+            backgroundColor: dsColors[index]
+        };
     });
+
+    // 4. Stacked Bar: Talent Pipeline by School
+    const ctxSchool = document.getElementById('chart-school-pipeline');
+    if (ctxSchool) {
+        if (chartSchoolPipeline) chartSchoolPipeline.destroy();
+        chartSchoolPipeline = new Chart(ctxSchool.getContext('2d'), {
+            type: 'bar',
+            data: { labels: schools.length ? schools : ['No Data'], datasets: schoolDatasets },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'right', labels: { color: '#eaeaea', font: { size: 8 } } } },
+                scales: {
+                    x: { stacked: true, grid: { display: false }, ticks: { color: '#858585' } },
+                    y: { stacked: true, beginAtZero: true, grid: { color: '#2c2c2c' }, ticks: { color: '#858585' } }
+                }
+            }
+        });
+    }
+
+    // Aggregations for Traits and Secondary Affinity
+    const MAX_SCORES_PBI = { CORE_AUDIT: 24, AOA: 27, DID: 24, DIGITAL: 24, TECH_RISK: 24, FAAS: 24 };
+    const deptMapping = { "Core Audit": "CORE_AUDIT", "AOA": "AOA", "DID": "DID", "Digital": "DIGITAL", "Tech Risk": "TECH_RISK", "FAAS": "FAAS" };
+    
+    let traitTotals = { Structure: 0, Analytical: 0, Strategic: 0, Tech: 0 };
+    let validTraitRecruits = 0;
+    const secondaryCounts = { "Core Audit": 0, "AOA": 0, "DID": 0, "Digital": 0, "Tech Risk": 0, "FAAS": 0 };
+    
+    history.forEach(item => {
+        if (!item.answers) return; // Legacy records skip
+        let normScores = {};
+        for (const [d, code] of Object.entries(deptMapping)) {
+            const rawScore = item.answers[code] || 0;
+            normScores[d] = (rawScore / MAX_SCORES_PBI[code]) * 100;
+        }
+        validTraitRecruits++;
+        traitTotals.Structure += normScores["AOA"];
+        traitTotals.Analytical += (normScores["Core Audit"] + normScores["DID"]) / 2;
+        traitTotals.Strategic += normScores["FAAS"];
+        traitTotals.Tech += (normScores["Digital"] + normScores["Tech Risk"]) / 2;
+        
+        let sortedDepts = Object.entries(normScores).sort((a, b) => b[1] - a[1]);
+        if (sortedDepts.length >= 2) secondaryCounts[sortedDepts[1][0]]++;
+    });
+
+    const avgTraits = [
+        validTraitRecruits ? Math.round(traitTotals.Structure / validTraitRecruits) : 0,
+        validTraitRecruits ? Math.round(traitTotals.Analytical / validTraitRecruits) : 0,
+        validTraitRecruits ? Math.round(traitTotals.Strategic / validTraitRecruits) : 0,
+        validTraitRecruits ? Math.round(traitTotals.Tech / validTraitRecruits) : 0
+    ];
+
+    // 5. Radar Chart: Cohort Trait Profile
+    const ctxTraits = document.getElementById('chart-cohort-traits');
+    if (ctxTraits) {
+        if (chartCohortTraits) chartCohortTraits.destroy();
+        chartCohortTraits = new Chart(ctxTraits.getContext('2d'), {
+            type: 'radar',
+            data: {
+                labels: ['Structure & Order', 'Analytical & Investigative', 'Strategic & Advisory', 'Systems & Tech'],
+                datasets: [{
+                    label: 'Cohort Average (%)',
+                    data: avgTraits,
+                    backgroundColor: 'rgba(212, 175, 55, 0.2)', // Gold tint
+                    borderColor: '#d4af37',
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#d4af37'
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    r: {
+                        angleLines: { color: '#333' },
+                        grid: { color: '#333' },
+                        pointLabels: { color: '#eaeaea', font: { size: 10 } },
+                        ticks: { display: false, min: 0, max: 100 }
+                    }
+                }
+            }
+        });
+    }
+
+    // 6. Doughnut Chart: Secondary Affinity (Runner-Ups)
+    const ctxSecondary = document.getElementById('chart-secondary-affinity');
+    if (ctxSecondary) {
+        if (chartSecondaryAffinity) chartSecondaryAffinity.destroy();
+        chartSecondaryAffinity = new Chart(ctxSecondary.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: deptKeysArr,
+                datasets: [{
+                    data: [secondaryCounts['Core Audit'], secondaryCounts['AOA'], secondaryCounts['DID'], secondaryCounts['Digital'], secondaryCounts['Tech Risk'], secondaryCounts['FAAS']],
+                    backgroundColor: dsColors,
+                    borderWidth: 1, borderColor: '#141414'
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'right', labels: { color: '#eaeaea', font: { size: 8 } } } }
+            }
+        });
+    }
+
 
     // Populate Page 2 logs
     const tableBody = document.getElementById('pbi-logs-table-body');
@@ -378,22 +540,27 @@ function drawDashboard(history) {
             tdName.textContent = item.name || 'Unknown';
             tr.appendChild(tdName);
             
+            const tdSchool = document.createElement('td');
+            tdSchool.textContent = item.school || 'N/A';
+            tr.appendChild(tdSchool);
+
+            const tdPref = document.createElement('td');
+            tdPref.textContent = item.preferredSSL || 'N/A';
+            tr.appendChild(tdPref);
+
             const tdDept = document.createElement('td');
             let color = '#fff';
-            if (item.dept.toLowerCase().includes('aoa')) color = '#ffd700';
-            else if (item.dept.toLowerCase().includes('adn')) color = '#38b6ff';
+            if (item.dept.toLowerCase().includes('core') || item.dept.toLowerCase().includes('audit')) color = '#d4af37';
+            else if (item.dept.toLowerCase().includes('aoa')) color = '#ff8c00';
+            else if (item.dept.toLowerCase().includes('did')) color = '#38b6ff';
+            else if (item.dept.toLowerCase().includes('digital')) color = '#39ff14';
             else if (item.dept.toLowerCase().includes('tech') || item.dept.toLowerCase().includes('risk')) color = '#ff5757';
-            else if (item.dept.toLowerCase().includes('did')) color = '#39ff14';
             tdDept.innerHTML = `<span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:${color}; margin-right:6px;"></span>${item.dept}`;
             tr.appendChild(tdDept);
             
             const tdTime = document.createElement('td');
             tdTime.textContent = new Date(item.timestamp).toLocaleString();
             tr.appendChild(tdTime);
-            
-            const tdDetails = document.createElement('td');
-            tdDetails.innerHTML = `<span class="pbi-badge">Verified</span>`;
-            tr.appendChild(tdDetails);
             
             const tdAction = document.createElement('td');
             const delBtn = document.createElement('button');
@@ -429,7 +596,9 @@ function setupPowerBITabs() {
             
             const zoomLabel = document.querySelector('.pbi-nav-zoom');
             if (zoomLabel) {
-                zoomLabel.textContent = targetId === 'pbi-page-1' ? "Page 1 of 2" : "Page 2 of 2";
+                if (targetId === 'pbi-page-1') zoomLabel.textContent = "Page 1 of 3";
+                else if (targetId === 'pbi-page-2') zoomLabel.textContent = "Page 2 of 3";
+                else if (targetId === 'pbi-page-3') zoomLabel.textContent = "Page 3 of 3";
             }
         });
     });
@@ -493,15 +662,41 @@ function animateSnitchRandomly() {
 }
 
 // Initialize App
-function initApp() {
+async function initApp() {
     init3DScene();
     animateSnitchRandomly();
     loadSettings();
     loadDbConfig();
-    seedHistoryIfNeeded();
+    
+    // Purge old dummy data generated by previous versions
+    try {
+        let history = JSON.parse(localStorage.getItem('sorting_history')) || [];
+        const originalLength = history.length;
+        history = history.filter(item => item.details !== "Automated point match (90%+)");
+        if (history.length !== originalLength) {
+            localStorage.setItem('sorting_history', JSON.stringify(history));
+            console.log(`Purged ${originalLength - history.length} dummy records from local storage.`);
+        }
+    } catch (e) {
+        console.error("Failed to purge dummy data", e);
+    }
+
     setupPowerBITabs();
     initQRModal();
     initDbModal();
+    
+    try {
+        const customScores = await fetchCustomScores();
+        if (customScores && Array.isArray(customScores) && customScores.length > 0) {
+            activeQuestions = customScores;
+            console.log("Loaded custom questions/scores from Firebase");
+        } else {
+            activeQuestions = JSON.parse(JSON.stringify(QUESTIONS)); // Deep copy from defaults
+        }
+    } catch (e) {
+        console.error("Error loading custom scores:", e);
+        activeQuestions = [...QUESTIONS];
+    }
     
     enterBtn.addEventListener('click', enterGreatHall);
     startBtn.addEventListener('click', startGame);
@@ -533,6 +728,36 @@ function initApp() {
     nextHouseBtn.addEventListener('click', () => navigateHouses(1));
     prevHouseBtn.addEventListener('click', () => navigateHouses(-1));
 
+    // Register dot indicator click events for fast navigation
+    document.querySelectorAll('.carousel-dots .dot').forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+            currentHouseIndex = index;
+            renderHousePreview();
+            gsap.fromTo('#intro-passport-card', { scale: 0.95 }, { scale: 1, duration: animDuration(0.3), ease: "power2.out" });
+        });
+    });
+
+    // Swipe gesture support for mobile carousel navigation
+    const carouselCard = document.getElementById('intro-passport-card');
+    if (carouselCard) {
+        let touchStartX = 0;
+        let touchEndX = 0;
+        carouselCard.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        carouselCard.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            const swipeDistance = touchStartX - touchEndX;
+            if (Math.abs(swipeDistance) > 50) { // Minimum swipe threshold
+                if (swipeDistance > 0) {
+                    navigateHouses(1); // Swipe left = next
+                } else {
+                    navigateHouses(-1); // Swipe right = prev
+                }
+            }
+        }, { passive: true });
+    }
+
     document.getElementById('open-settings-btn').addEventListener('click', openSettingsScreen);
     document.getElementById('save-settings-btn').addEventListener('click', closeSettingsScreen);
     document.getElementById('open-admin-btn').addEventListener('click', openAdminScreen);
@@ -543,12 +768,34 @@ function initApp() {
     const addMockBtn = document.getElementById('pbi-add-mock-btn');
     if (addMockBtn) {
         addMockBtn.addEventListener('click', () => {
-            const depts = ["AOA", "ADN", "Tech Risk", "DID"];
+            const depts = ["Core Audit", "AOA", "DID", "Digital", "Tech Risk", "FAAS"];
             const mockNames = ["Alex Rivera", "Jamie Chen", "Taylor Smith", "Jordan Lee", "Casey Jones", "Morgan Davis"];
+            const schools = ["Ateneo de Manila", "De La Salle University", "University of the Philippines", "University of Santo Tomas"];
             const randomDept = depts[Math.floor(Math.random() * depts.length)];
             const randomName = mockNames[Math.floor(Math.random() * mockNames.length)];
-            saveResultToHistory(randomDept, randomName);
-            renderPowerBICharts();
+            const randomSchool = schools[Math.floor(Math.random() * schools.length)];
+            const randomPref = depts[Math.floor(Math.random() * depts.length)];
+            
+            // Generate some random scores for the charts
+            const mockScores = {
+                CORE_AUDIT: Math.floor(Math.random() * 20),
+                AOA: Math.floor(Math.random() * 25),
+                DID: Math.floor(Math.random() * 20),
+                DIGITAL: Math.floor(Math.random() * 20),
+                TECH_RISK: Math.floor(Math.random() * 20),
+                FAAS: Math.floor(Math.random() * 20)
+            };
+            
+            // Save to Firebase Database
+            saveSortingResult(randomName, randomDept, mockScores, randomSchool, randomPref);
+            
+            // Save to Local PowerBI History (Legacy)
+            saveResultToHistory(randomDept, randomName, randomSchool, randomPref);
+            
+            // Small delay to allow Firebase to save before pulling updates
+            setTimeout(() => {
+                renderPowerBICharts();
+            }, 500);
         });
     }
     
@@ -577,11 +824,11 @@ function initApp() {
             
             // Build CSV string
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Recruit ID,Department,Timestamp,Details\n"; // Header row
+            csvContent += "Recruit ID,Name,School,Preferred SSL,Assigned Sub Service Line,Timestamp,Details\n"; // Header row
             
             history.forEach(item => {
                 const date = new Date(item.timestamp).toLocaleString().replace(/,/g, '');
-                const row = `"${item.id}","${item.dept}","${date}","${item.details}"`;
+                const row = `"${item.id}","${item.name || 'Anonymous'}","${item.school || ''}","${item.preferredSSL || ''}","${item.dept}","${date}","${item.details}"`;
                 csvContent += row + "\n";
             });
             
@@ -622,14 +869,43 @@ function initApp() {
         });
     }
 
-    // Splash Animation
-    gsap.from('.splash-content', {
-        y: 30,
-        opacity: 0,
-        duration: animDuration(2),
-        ease: "power2.out",
-        delay: animDuration(0.5)
-    });
+    // Cinematic staggered entrance animation
+    function playSplashEntrance() {
+        const tl = gsap.timeline();
+        
+        // Start everything hidden
+        gsap.set(['.snitch-container', '.intro-text-wrapper', '.hp-sublogo', '.intro-btn-wrapper', '.reveal-hint'], 
+            { opacity: 0, y: 20 });
+        
+        // 1. Snitch flies in first
+        tl.to('.snitch-container', {
+            opacity: 1, y: 0, duration: animDuration(1.2), ease: "power2.out"
+        }, animDuration(0.3))
+        
+        // 2. Logo fades up
+        .to('.intro-text-wrapper', {
+            opacity: 1, y: 0, duration: animDuration(1.5), ease: "power3.out"
+        }, animDuration(0.8))
+        
+        // 3. Subtitle slides in
+        .to('.hp-sublogo', {
+            opacity: 1, y: 0, duration: animDuration(1), ease: "power2.out"
+        }, animDuration(1.4))
+        
+        // 4. Buttons appear
+        .to('.intro-btn-wrapper', {
+            opacity: 1, y: 0, duration: animDuration(1), ease: "power2.out"
+        }, animDuration(2))
+        
+        // 5. Wand hint fades in last
+        .to('.reveal-hint', {
+            opacity: 0.4, y: 0, duration: animDuration(1), ease: "power2.out"
+        }, animDuration(2.5));
+        
+        return tl;
+    }
+    
+    playSplashEntrance();
     
     // Tilt Effect for Passport Card
     document.addEventListener('mousemove', (e) => {
@@ -656,6 +932,22 @@ function loadSettings() {
 function saveSettings() {
     localStorage.setItem('sorting_ceremony_settings', JSON.stringify(settings));
     applySettings();
+}
+
+function populateSchoolDropdown() {
+    const schoolSelect = document.getElementById('recruit-school-input');
+    if (!schoolSelect) return;
+    schoolSelect.innerHTML = '<option value="" disabled selected>Select your school</option>';
+    const list = settings.schools ? settings.schools.split(',') : [];
+    list.forEach(sch => {
+        const trimmed = sch.trim();
+        if (trimmed) {
+            const opt = document.createElement('option');
+            opt.value = trimmed;
+            opt.textContent = trimmed;
+            schoolSelect.appendChild(opt);
+        }
+    });
 }
 
 function applySettings() {
@@ -690,6 +982,7 @@ function applySettings() {
     const animSpeedSelect = document.getElementById('setting-anim-speed');
     const volumeSlider = document.getElementById('setting-volume');
     const pbiUrlInput = document.getElementById('setting-pbi-url');
+    const schoolsInput = document.getElementById('setting-schools');
 
     if (densitySelect) densitySelect.value = settings.density;
     if (speedSelect) speedSelect.value = settings.speed;
@@ -699,6 +992,9 @@ function applySettings() {
     if (animSpeedSelect) animSpeedSelect.value = settings.animSpeed;
     if (volumeSlider) volumeSlider.value = settings.volume;
     if (pbiUrlInput) pbiUrlInput.value = settings.pbiUrl;
+    if (schoolsInput) schoolsInput.value = settings.schools || '';
+
+    populateSchoolDropdown();
 }
 
 function openSettingsScreen() {
@@ -714,6 +1010,9 @@ function closeSettingsScreen() {
     settings.animSpeed = document.getElementById('setting-anim-speed').value;
     settings.volume = parseInt(document.getElementById('setting-volume').value);
     settings.pbiUrl = document.getElementById('setting-pbi-url').value;
+    
+    const schoolsInput = document.getElementById('setting-schools');
+    if (schoolsInput) settings.schools = schoolsInput.value;
 
     saveSettings();
     switchScreen(screens.settings, screens.splash);
@@ -728,6 +1027,17 @@ function openAdminScreen() {
 function closeAdminScreen() {
     webglCanvas.style.display = 'block'; // Show fireflies again
     switchScreen(screens.admin, screens.splash);
+    
+    // Re-trigger the cinematic staggered animation
+    const tl = gsap.timeline();
+    gsap.set(['.snitch-container', '.intro-text-wrapper', '.hp-sublogo', '.intro-btn-wrapper', '.reveal-hint'], 
+        { opacity: 0, y: 20 });
+    
+    tl.to('.snitch-container', { opacity: 1, y: 0, duration: animDuration(1.2), ease: "power2.out" }, animDuration(0.3))
+      .to('.intro-text-wrapper', { opacity: 1, y: 0, duration: animDuration(1.5), ease: "power3.out" }, animDuration(0.8))
+      .to('.hp-sublogo', { opacity: 1, y: 0, duration: animDuration(1), ease: "power2.out" }, animDuration(1.4))
+      .to('.intro-btn-wrapper', { opacity: 1, y: 0, duration: animDuration(1), ease: "power2.out" }, animDuration(2))
+      .to('.reveal-hint', { opacity: 0.4, y: 0, duration: animDuration(1), ease: "power2.out" }, animDuration(2.5));
 }
 
 function openHousesScreen() {
@@ -750,16 +1060,57 @@ function navigateHouses(dir) {
 
 function renderHousePreview() {
     const dept = DEPARTMENTS[deptKeys[currentHouseIndex]];
+    const card = document.getElementById('intro-passport-card');
+    if (card) {
+        card.className = 'passport-card ' + dept.id.toLowerCase() + '-theme';
+        card.style.background = dept.bgColor;
+    }
     
-    document.getElementById('intro-passport-top').style.background = dept.bgColor;
+    document.getElementById('intro-passport-top').style.background = 'transparent';
     document.getElementById('intro-passport-name').textContent = dept.name;
     document.getElementById('intro-passport-name').style.color = dept.accentColor || '#fff';
-    document.getElementById('intro-passport-icon').textContent = dept.icon;
+    
+    const introDeptTitle = document.getElementById('intro-passport-dept');
+    if (introDeptTitle) {
+        introDeptTitle.textContent = dept.name;
+        introDeptTitle.style.color = dept.accentColor || '#fff';
+    }
+
+    const introLogo = document.getElementById('intro-passport-logo');
+    const introIcon = document.getElementById('intro-passport-icon');
+    if (dept.logo) {
+        introLogo.src = dept.logo;
+        introLogo.style.display = 'block';
+        introIcon.style.display = 'none';
+    } else {
+        introLogo.style.display = 'none';
+        introIcon.style.display = 'block';
+        introIcon.textContent = dept.icon;
+    }
+
     document.getElementById('intro-passport-skill').textContent = dept.skill;
     document.getElementById('intro-passport-tool').textContent = dept.tool;
+    
+    const panel1Icon = document.getElementById('intro-passport-panel1-icon');
+    if (panel1Icon) panel1Icon.textContent = dept.icon;
+    const panel1Desc = document.getElementById('intro-passport-panel1-desc');
+    if (panel1Desc) panel1Desc.textContent = dept.description;
+    
     document.getElementById('intro-department-description').textContent = dept.description;
     
+    renderPursuitsCarousel(card, dept);
+    
     triggerRevealAnimation(dept.color); // Change 3D background color to match
+
+    // Update active dot indicator
+    const dots = document.querySelectorAll('.carousel-dots .dot');
+    dots.forEach((dot, index) => {
+        if (index === currentHouseIndex) {
+            dot.classList.add('active');
+        } else {
+            dot.classList.remove('active');
+        }
+    });
 }
 
 function enterGreatHall() {
@@ -828,29 +1179,57 @@ function switchScreen(fromScreen, toScreen, isUnroll = false) {
 }
 
 let currentRecruitName = "Anonymous User";
+let currentSchool = "";
+let currentPreferredSSL = "";
 
 function startGame() {
     try {
         const nameInput = document.getElementById('recruit-name-input');
+        const schoolSelect = document.getElementById('recruit-school-input');
+        const preferredSslSelect = document.getElementById('recruit-preferred-ssl-input');
+        
+        let valid = true;
         if (nameInput) {
             if (nameInput.value.trim() === "") {
-                // Shake the input to prompt the user visually
                 gsap.fromTo(nameInput, { x: -10 }, { x: 10, duration: 0.1, yoyo: true, repeat: 3, onComplete: () => gsap.set(nameInput, {x:0}) });
                 nameInput.style.borderColor = "red";
-                return;
+                valid = false;
+            } else {
+                currentRecruitName = nameInput.value.trim();
+                nameInput.style.borderColor = "var(--parchment-border)";
             }
-            currentRecruitName = nameInput.value.trim();
-            nameInput.style.borderColor = "var(--parchment-border)";
         }
+        if (schoolSelect) {
+            if (schoolSelect.value === "") {
+                gsap.fromTo(schoolSelect, { x: -10 }, { x: 10, duration: 0.1, yoyo: true, repeat: 3, onComplete: () => gsap.set(schoolSelect, {x:0}) });
+                schoolSelect.style.borderColor = "red";
+                valid = false;
+            } else {
+                currentSchool = schoolSelect.value;
+                schoolSelect.style.borderColor = "var(--parchment-border)";
+            }
+        }
+        if (preferredSslSelect) {
+            if (preferredSslSelect.value === "") {
+                gsap.fromTo(preferredSslSelect, { x: -10 }, { x: 10, duration: 0.1, yoyo: true, repeat: 3, onComplete: () => gsap.set(preferredSslSelect, {x:0}) });
+                preferredSslSelect.style.borderColor = "red";
+                valid = false;
+            } else {
+                currentPreferredSSL = preferredSslSelect.value;
+                preferredSslSelect.style.borderColor = "var(--parchment-border)";
+            }
+        }
+        
+        if (!valid) return;
 
         playClickSound();
         triggerInteractionAnimation();
         switchScreen(screens.intro, screens.question);
         
-        // Pick 5 random questions
-        if (!QUESTIONS || !Array.isArray(QUESTIONS)) throw new Error("QUESTIONS array is not loaded correctly.");
-        const shuffledQuestions = [...QUESTIONS].sort(() => Math.random() - 0.5);
-        sessionQuestions = shuffledQuestions.slice(0, 5);
+        // Pick 8 random questions
+        if (!activeQuestions || !Array.isArray(activeQuestions)) throw new Error("activeQuestions array is not loaded correctly.");
+        const shuffledQuestions = [...activeQuestions].sort(() => Math.random() - 0.5);
+        sessionQuestions = shuffledQuestions.slice(0, 8);
         currentQuestionIndex = 0;
         
         // reset tracking arrays and scores
@@ -905,9 +1284,7 @@ function renderQuestionData(q) {
             
             // Check if already selected (from moving previous)
             if (userAnswers[currentQuestionIndex] === opt.points) {
-                btn.style.background = 'rgba(212, 175, 55, 0.2)';
-                btn.style.borderColor = 'var(--gold)';
-                btn.style.color = '#000';
+                btn.classList.add('selected');
             }
             
             btn.onclick = () => { 
@@ -939,11 +1316,11 @@ function renderQuestionData(q) {
     
     if (prevBtn) {
         if (currentQuestionIndex > 0) {
-            prevBtn.style.display = 'inline-block';
+            prevBtn.style.visibility = 'visible';
             prevBtn.style.opacity = '1';
             prevBtn.style.pointerEvents = 'auto';
         } else {
-            prevBtn.style.display = 'none';
+            prevBtn.style.visibility = 'hidden';
             prevBtn.style.opacity = '0';
             prevBtn.style.pointerEvents = 'none';
         }
@@ -968,14 +1345,10 @@ function handleAnswer(points, selectedBtn) {
     // Visually highlight selection
     const allBtns = document.querySelectorAll('.option-btn');
     allBtns.forEach(b => {
-        b.style.background = '';
-        b.style.borderColor = 'var(--parchment-border)';
-        b.style.color = '#2c241b';
+        b.classList.remove('selected');
     });
     
-    selectedBtn.style.background = 'rgba(212, 175, 55, 0.2)';
-    selectedBtn.style.borderColor = 'var(--gold)';
-    selectedBtn.style.color = '#000';
+    selectedBtn.classList.add('selected');
     
     // Enable Next button
     const nextBtn = document.getElementById('next-quiz-btn');
@@ -1000,20 +1373,36 @@ function finishSorting() {
         }
     });
 
-    // Calculate winner
-    let maxScore = -1;
+    // Max score configuration from template
+    const MAX_SCORES = {
+        CORE_AUDIT: 24,
+        AOA: 27,
+        DID: 24,
+        DIGITAL: 24,
+        TECH_RISK: 24,
+        FAAS: 24
+    };
+
+    // Calculate normalized percentage scores
+    let normalizedScores = {};
     for (const [dept, score] of Object.entries(scores)) {
-        if (score > maxScore) {
-            maxScore = score;
+        normalizedScores[dept] = (score / MAX_SCORES[dept]) * 100;
+    }
+
+    // Calculate winner
+    let maxPercentage = -1;
+    for (const [dept, pct] of Object.entries(normalizedScores)) {
+        if (pct > maxPercentage) {
+            maxPercentage = pct;
         }
     }
 
     // Tie-Breaker Logic
-    const tiedDepts = Object.keys(scores).filter(dept => scores[dept] === maxScore);
+    const tiedDepts = Object.keys(normalizedScores).filter(dept => normalizedScores[dept] === maxPercentage);
     
-    if (tiedDepts.length > 1 && currentQuestionIndex < 8) { // Prevent infinite tie loops
+    if (tiedDepts.length > 1) { // Look for unused questions if tied
         // Find an unused question that has points for these tied departments
-        const unused = QUESTIONS.filter(q => !sessionQuestions.includes(q));
+        const unused = activeQuestions.filter(q => !sessionQuestions.includes(q));
         if (unused.length > 0) {
             sessionQuestions.push(unused[0]); // Sudden Death Question
             loadQuestion(currentQuestionIndex);
@@ -1028,9 +1417,9 @@ function finishSorting() {
     // Find Secondary Affinity
     let secondMax = -1;
     let affinityDeptId = null;
-    for (const [dept, score] of Object.entries(scores)) {
-        if (dept !== winningDeptId && score > secondMax && score > 0) {
-            secondMax = score;
+    for (const [dept, pct] of Object.entries(normalizedScores)) {
+        if (dept !== winningDeptId && pct > secondMax && pct > 0) {
+            secondMax = pct;
             affinityDeptId = dept;
         }
     }
@@ -1084,8 +1473,21 @@ function finishSorting() {
     }
 
     function updatePassportUI(dept) {
-        passportTop.style.background = dept.bgColor;
-        passportIcon.textContent = dept.icon;
+        passportCard.className = 'passport-card ' + dept.id.toLowerCase() + '-theme';
+        passportCard.style.background = dept.bgColor;
+        passportTop.style.background = 'transparent';
+        
+        const mainLogo = document.getElementById('passport-logo');
+        if (dept.logo) {
+            mainLogo.src = dept.logo;
+            mainLogo.style.display = 'block';
+            passportIcon.style.display = 'none';
+        } else {
+            mainLogo.style.display = 'none';
+            passportIcon.style.display = 'block';
+            passportIcon.textContent = dept.icon;
+        }
+
         passportDeptSub.textContent = dept.name;
         passportDeptSub.style.color = dept.accentColor || '#fff';
         
@@ -1094,6 +1496,13 @@ function finishSorting() {
         
         passportSkill.textContent = dept.skill;
         passportTool.textContent = dept.tool;
+
+        const panel1Icon = document.getElementById('passport-panel1-icon');
+        if (panel1Icon) panel1Icon.textContent = dept.icon;
+        const panel1Desc = document.getElementById('passport-panel1-desc');
+        if (panel1Desc) panel1Desc.textContent = dept.description;
+        
+        renderPursuitsCarousel(passportCard, dept);
     }
 
     function lockInFinalDepartment(dept, affinityId) {
@@ -1117,14 +1526,14 @@ function finishSorting() {
             setTimeout(() => document.body.classList.remove('shake-active'), 500);
 
             // Massive UI feedback
-            gsap.fromTo(passportTop, { scale: 0.95 }, { scale: 1, duration: animDuration(0.5), ease: "elastic.out(1, 0.5)" });
+            gsap.fromTo(passportCard, { scale: 0.95 }, { scale: 1, duration: animDuration(0.5), ease: "elastic.out(1, 0.5)" });
             
             deptDesc.textContent = dept.description;
             restartBtn.style.display = 'inline-block';
             downloadBtn.style.display = 'inline-block';
             gsap.fromTo([restartBtn, downloadBtn], { opacity: 0 }, { opacity: 1, duration: animDuration(1), delay: animDuration(1) });
         } else {
-            gsap.set(passportTop, { scale: 1 });
+            gsap.set(passportCard, { scale: 1 });
             deptDesc.textContent = dept.description;
             restartBtn.style.display = 'inline-block';
             downloadBtn.style.display = 'inline-block';
@@ -1148,14 +1557,14 @@ function finishSorting() {
         triggerRevealAnimation(dept.color);
 
         // Save to Firebase/SharePoint
-        saveSortingResult(currentRecruitName, dept.name, scores);
+        saveSortingResult(currentRecruitName, dept.name, scores, currentSchool, currentPreferredSSL);
 
         // Save to local PowerBI history tracker
-        saveResultToHistory(dept.name, currentRecruitName);
+        saveResultToHistory(dept.name, currentRecruitName, currentSchool, currentPreferredSSL);
     }
 }
 
-let dbConfig = { provider: 'local' };
+let dbConfig = { provider: 'firebase' };
 
 function loadDbConfig() {
     const saved = localStorage.getItem('auditour_db_config');
@@ -1231,3 +1640,89 @@ function initDbModal() {
 
 // Start
 window.addEventListener('DOMContentLoaded', initApp);
+
+function renderPursuitsCarousel(card, dept) {
+    if (!card) return;
+    const carouselItemsContainer = card.querySelector('.carousel-items');
+    if (carouselItemsContainer && dept.pursuits) {
+        carouselItemsContainer.innerHTML = '';
+        dept.pursuits.forEach(p => {
+            const item = document.createElement('div');
+            item.className = 'carousel-item';
+            
+            let badgeHTML = '';
+            if (p.icon.length <= 3) {
+                badgeHTML = `<div class="item-circle tool-badge" style="background: ${p.iconColor || 'var(--panel-accent)'}; border-color: ${p.iconColor || 'var(--panel-accent)'}; color: #fff; font-family: 'Inter', sans-serif; font-weight: 800; font-size: 0.9rem; justify-content: center; align-items: center; display: flex; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">${p.icon}</div>`;
+            } else {
+                badgeHTML = `<div class="item-circle"><span>${p.icon}</span></div>`;
+            }
+            
+            item.innerHTML = `
+                ${badgeHTML}
+                <div class="item-label">${p.name}</div>
+            `;
+            
+            item.title = `${p.name}: ${p.desc}`;
+            item.onclick = () => {
+                showPursuitModal(p.name, p.desc, dept.name, p.icon, p.iconColor);
+            };
+            
+            carouselItemsContainer.appendChild(item);
+        });
+    }
+}
+
+function showPursuitModal(name, desc, deptName, icon, iconColor) {
+    playClickSound();
+    
+    let modal = document.getElementById('pursuit-detail-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'pursuit-detail-modal';
+        modal.className = 'pursuit-modal';
+        modal.innerHTML = `
+            <div class="pursuit-modal-content">
+                <button class="pursuit-modal-close">&times;</button>
+                <div class="pursuit-modal-badge" id="pm-badge"></div>
+                <h3 class="pursuit-modal-title" id="pm-title"></h3>
+                <div class="pursuit-modal-subtitle" id="pm-subtitle"></div>
+                <div class="pursuit-modal-desc" id="pm-desc"></div>
+                <button class="ink-btn pm-close-btn" style="padding: 8px 20px; font-size: 0.9rem; margin-top: 10px;">Got it</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        const closeBtn = modal.querySelector('.pursuit-modal-close');
+        const gotItBtn = modal.querySelector('.pm-close-btn');
+        const closeModal = () => {
+            playClickSound();
+            modal.classList.remove('active');
+        };
+        closeBtn.onclick = closeModal;
+        gotItBtn.onclick = closeModal;
+        modal.onclick = (e) => {
+            if (e.target === modal) closeModal();
+        };
+    }
+    
+    const badge = modal.querySelector('#pm-badge');
+    if (icon.length <= 3) {
+        badge.innerHTML = icon;
+        badge.style.background = iconColor || 'var(--panel-accent)';
+        badge.style.color = '#fff';
+        badge.style.fontFamily = "'Inter', sans-serif";
+        badge.style.fontWeight = '800';
+        badge.style.fontSize = '1.8rem';
+    } else {
+        badge.innerHTML = `<span>${icon}</span>`;
+        badge.style.background = 'rgba(255,255,255,0.1)';
+        badge.style.color = 'inherit';
+        badge.style.fontSize = '2.5rem';
+    }
+    
+    modal.querySelector('#pm-title').textContent = name;
+    modal.querySelector('#pm-subtitle').textContent = `HOW TO PURSUE - ${deptName}`;
+    modal.querySelector('#pm-desc').textContent = desc;
+    
+    modal.classList.add('active');
+}

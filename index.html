@@ -4,8 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Auditour | Sorting Ceremony</title>
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=9">
     <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Quintessential&family=IM+Fell+English:ital@0;1&family=Cinzel:wght@600&display=swap" rel="stylesheet">
+    <style>
+        /* Prevent FOUC while stylesheet loads */
+        .screen { opacity: 0; visibility: hidden; }
+        .screen.active { opacity: 1; visibility: visible; }
+    </style>
 </head>
 <body>
     <!-- Protocol Check -->
@@ -29,6 +34,20 @@
         <!-- Splash Screen Menu (Exhibition Style) -->
         <section id="splash-screen" class="screen active">
             <div class="exhibition-bg"></div>
+            
+            <!-- Atmospheric Overlays -->
+            <div class="splash-vignette"></div>
+            <div class="splash-fog"></div>
+            <div class="splash-stars">
+                <span class="twinkle-star" style="top: 8%; left: 15%; animation-delay: 0s;"></span>
+                <span class="twinkle-star" style="top: 12%; left: 72%; animation-delay: 1.2s;"></span>
+                <span class="twinkle-star" style="top: 5%; left: 45%; animation-delay: 2.5s;"></span>
+                <span class="twinkle-star" style="top: 18%; left: 88%; animation-delay: 0.8s;"></span>
+                <span class="twinkle-star" style="top: 3%; left: 30%; animation-delay: 3.1s;"></span>
+                <span class="twinkle-star" style="top: 15%; left: 55%; animation-delay: 1.8s;"></span>
+                <span class="twinkle-star" style="top: 22%; left: 10%; animation-delay: 0.4s;"></span>
+                <span class="twinkle-star" style="top: 7%; left: 82%; animation-delay: 2.2s;"></span>
+            </div>
             
             <!-- Floating Controls in Top Right -->
             <div class="global-controls">
@@ -57,7 +76,10 @@
                 </div>
                 <div class="menu-options intro-btn-wrapper" style="display: flex; gap: 20px;">
                     <button id="enter-btn" class="ink-btn gold-ink">Begin</button>
-                    <button id="view-houses-btn" class="ink-btn gold-ink">The Departments</button>
+                    <button id="view-houses-btn" class="ink-btn gold-ink">Sub Service Lines</button>
+                </div>
+                <div class="reveal-hint">
+                    <span class="wand-icon">🪄</span> Touch & Hold to Reveal
                 </div>
             </div>
         </section>
@@ -68,14 +90,27 @@
             <div class="main-bg"></div>
             <div class="parchment-panel">
                 <h1 class="gothic-title">The Journey Begins</h1>
+                <div class="ornament-divider">⚜</div>
                 <p class="description-text">Step forward. The Sorting will now commence.</p>
                 
-                <div style="text-align: center; margin: 25px 0;">
-                    <input type="text" id="recruit-name-input" class="ink-input" placeholder="Enter your full name" style="width: 80%; padding: 12px; font-size: 1.2rem; background: rgba(0,0,0,0.1); border: 2px solid var(--parchment-border); color: #222; text-align: center; font-family: 'Cinzel', serif;" required autocomplete="off">
+                <div style="text-align: center; margin: 25px 0; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                    <input type="text" id="recruit-name-input" class="ink-input" placeholder="Enter your full name" required autocomplete="off">
+                    <select id="recruit-school-input" class="ink-input" required style="padding: 10px 14px; font-size: 1rem; width: 80%; text-align-last: center;">
+                        <option value="" disabled selected>Select your school</option>
+                    </select>
+                    <select id="recruit-preferred-ssl-input" class="ink-input" required style="padding: 10px 14px; font-size: 1rem; width: 80%; text-align-last: center;">
+                        <option value="" disabled selected>Select Preferred Sub Service Line</option>
+                        <option value="Core Audit">Core Audit</option>
+                        <option value="AOA">AOA (Assurance Operations Accelerator)</option>
+                        <option value="DID">DID (Data Integrity and Delivery)</option>
+                        <option value="Digital">Digital</option>
+                        <option value="Tech Risk">Tech Risk</option>
+                        <option value="FAAS">FAAS (Financial Accounting Advisory Services)</option>
+                    </select>
                 </div>
 
-                <div style="display: flex; gap: 20px; justify-content: center; margin-top: 20px;">
-                    <button id="cancel-intro-btn" class="ink-btn" style="font-size: 1.4rem;">Return to Menu</button>
+                <div class="intro-nav-container">
+                    <button id="cancel-intro-btn" class="ink-btn">Return to Menu</button>
                     <button id="start-btn" class="ink-btn">Proceed</button>
                 </div>
             </div>
@@ -89,10 +124,10 @@
                 <div id="options-container" class="options-grid">
                     <!-- Options injected via JS -->
                 </div>
-                <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                    <button id="prev-quiz-btn" class="ink-btn" style="font-size: 1.2rem; opacity: 0; pointer-events: none;">&lt; Previous</button>
-                    <button id="cancel-quiz-btn" class="ink-btn" style="font-size: 1.2rem; opacity: 0.7;">Abandon Sorting</button>
-                    <button id="next-quiz-btn" class="ink-btn" style="font-size: 1.2rem; opacity: 0.5; pointer-events: none;">Next &gt;</button>
+                <div class="quiz-nav-container">
+                    <button id="prev-quiz-btn" class="ink-btn" style="opacity: 0; pointer-events: none;">&lt; Previous</button>
+                    <button id="cancel-quiz-btn" class="ink-btn" style="opacity: 0.7;">Abandon Sorting</button>
+                    <button id="next-quiz-btn" class="ink-btn" style="opacity: 0.5; pointer-events: none;">Next &gt;</button>
                 </div>
             </div>
             <div class="progress-bar-container">
@@ -116,38 +151,84 @@
                             <p class="passport-date">Joined May 2026</p>
                         </div>
                         <div class="profile-pic-box">
+                            <img id="passport-logo" src="" alt="SSL Logo" style="display:none; width: 100%; height: 100%; object-fit: contain; border-radius: 8px;" />
                             <span id="passport-icon" style="font-size: 5rem;">❓</span>
                         </div>
                     </div>
                     
-                    <!-- Right: Attributes -->
+                    <!-- Right: Three Panels (Attributes) -->
                     <div class="passport-attributes">
-                        <div class="attr-box">
-                            <h5 class="attr-label">DEPARTMENT</h5>
-                            <h3 class="attr-value" id="passport-dept">???</h3>
+                        <!-- Panel 1: Sub Service Line -->
+                        <div class="attr-panel">
+                            <div class="attr-panel-header">SUB SERVICE LINE</div>
+                            <div class="attr-panel-icon-container">
+                                <span class="attr-panel-icon" id="passport-panel1-icon">❓</span>
+                            </div>
+                            <h3 class="attr-panel-title" id="passport-dept">???</h3>
+                            <p class="attr-panel-desc" id="passport-panel1-desc">Your sub service line</p>
                         </div>
-                        <div class="attr-box">
-                            <h5 class="attr-label">CORE SKILL</h5>
-                            <h3 class="attr-value" id="passport-skill">???</h3>
-                            <p class="attr-desc">Your strongest asset</p>
+                        <!-- Panel 2: Core Skill -->
+                        <div class="attr-panel">
+                            <div class="attr-panel-header">CORE SKILL</div>
+                            <div class="attr-panel-icon-container">
+                                <span class="attr-panel-icon" id="passport-panel2-icon">🛡️</span>
+                            </div>
+                            <h3 class="attr-panel-title" id="passport-skill">???</h3>
+                            <p class="attr-panel-desc">Your strongest asset</p>
                         </div>
-                        <div class="attr-box">
-                            <h5 class="attr-label">TOOL</h5>
-                            <h3 class="attr-value" id="passport-tool">???</h3>
-                            <p class="attr-desc">Your primary weapon</p>
-                        </div>
-                        <div class="attr-box" id="affinity-box" style="display: none;">
-                            <h5 class="attr-label">AFFINITY</h5>
-                            <h3 class="attr-value" id="passport-affinity">None</h3>
-                            <p class="attr-desc">Secondary trait</p>
+                        <!-- Panel 3: Tool -->
+                        <div class="attr-panel">
+                            <div class="attr-panel-header">TOOL</div>
+                            <div class="attr-panel-icon-container">
+                                <span class="attr-panel-icon" id="passport-panel3-icon">🪄</span>
+                            </div>
+                            <h3 class="attr-panel-title" id="passport-tool">???</h3>
+                            <p class="attr-panel-desc">Your primary weapon</p>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Dark Bottom Section with Return Button -->
+                <!-- Silhouette Divider -->
+                <div class="silhouette-divider">
+                    <svg viewBox="0 0 1000 80" preserveAspectRatio="none" style="width: 100%; height: 60px; display: block; fill: #0f0a08; margin-bottom: -1px;">
+                        <path d="M0,80 L1000,80 L1000,70 L980,50 L965,70 L950,30 L935,70 L920,40 L900,20 L880,50 L870,40 L850,75 L840,40 L810,70 L790,25 L775,60 L750,70 L730,15 L710,50 L680,45 L660,10 L640,45 L600,60 L570,35 L550,35 L540,55 L500,50 L470,20 L450,55 L425,35 L410,55 L380,45 L350,55 L320,30 L300,55 L280,40 L250,75 L235,30 L210,65 L180,45 L160,15 L140,55 L120,30 L95,65 L70,35 L50,35 L40,55 L0,45 Z" />
+                    </svg>
+                </div>
+                
+                <!-- Dark Bottom Section with Unlockables -->
                 <div class="passport-bottom">
-                    <h3 class="welcome-text" style="font-size: 1.5rem; color: #fff;">Sorting Complete</h3>
-                    <p id="department-description" class="description-text" style="color: #ccc; margin-top: 10px;">The sorting hat is deliberating...</p>
+                    <div class="unlockables-carousel">
+                        <div class="carousel-items">
+                            <div class="carousel-item">
+                                <div class="item-circle"><span>🎒</span></div>
+                                <div class="item-label">Portkey Container</div>
+                            </div>
+                            <div class="carousel-item">
+                                <div class="item-circle"><span>🎟️</span></div>
+                                <div class="item-label">Express Ticket</div>
+                            </div>
+                            <div class="carousel-item">
+                                <div class="item-circle"><span>🚂</span></div>
+                                <div class="item-label">Express Carriage</div>
+                            </div>
+                            <div class="carousel-item">
+                                <div class="item-circle"><span>📌</span></div>
+                                <div class="item-label">Dark Mark Pin</div>
+                            </div>
+                            <div class="carousel-item">
+                                <div class="item-circle"><span>🖼️</span></div>
+                                <div class="item-label">Magic Theme</div>
+                            </div>
+                            <div class="carousel-item">
+                                <div class="item-circle"><span>📖</span></div>
+                                <div class="item-label">Book of Monsters</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p id="department-description" class="description-text" style="color: #ccc; margin-top: 20px; font-size: 1rem; display: none;">The sorting hat is deliberating...</p>
+                    
+                    <!-- Original controls -->
                     <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
                         <button id="download-btn" class="ink-btn" style="color: #fff; border-color: #fff; display: none;">Download ID</button>
                         <button id="restart-btn" class="ink-btn" style="color: #fff; border-color: #fff; display: none;">Return</button>
@@ -160,8 +241,8 @@
         <section id="houses-screen" class="screen">
             <div class="main-bg"></div>
             
-            <div class="houses-carousel-wrapper" style="position: relative; display: flex; align-items: center; gap: 20px; z-index: 10;">
-                <button id="prev-house-btn" class="ink-btn" style="color: #fff; font-size: 4rem; text-shadow: 0 0 10px #000; border: none;">&lt;</button>
+            <div class="houses-carousel-wrapper">
+                <button id="prev-house-btn" class="carousel-arrow prev-arrow">&lt;</button>
                 
                 <div id="intro-passport-card" class="passport-card">
                     <!-- Colored Top Section -->
@@ -169,35 +250,99 @@
                         <!-- Left: Profile Info -->
                         <div class="passport-profile">
                             <div class="profile-info-text">
-                                <h2 class="passport-name" id="intro-passport-name">DEPARTMENT</h2>
-                                <h4 class="passport-sub">Overview</h4>
+                                <h2 class="passport-name" id="intro-passport-name">SUB SERVICE LINE</h2>
+                                <h4 class="passport-sub" id="intro-passport-dept-sub">Overview</h4>
+                                <p class="passport-date">Joined May 2026</p>
                             </div>
                             <div class="profile-pic-box">
+                                <img id="intro-passport-logo" src="" alt="SSL Logo" style="display:none; width: 100%; height: 100%; object-fit: contain; border-radius: 8px;" />
                                 <span id="intro-passport-icon" style="font-size: 5rem;">❓</span>
                             </div>
                         </div>
                         
-                        <!-- Right: Attributes -->
+                        <!-- Right: Three Panels (Attributes) -->
                         <div class="passport-attributes">
-                            <div class="attr-box">
-                                <h5 class="attr-label">CORE SKILL</h5>
-                                <h3 class="attr-value" id="intro-passport-skill">???</h3>
+                            <!-- Panel 1: Sub Service Line -->
+                            <div class="attr-panel">
+                                <div class="attr-panel-header">SUB SERVICE LINE</div>
+                                <div class="attr-panel-icon-container">
+                                    <span class="attr-panel-icon" id="intro-passport-panel1-icon">❓</span>
+                                </div>
+                                <h3 class="attr-panel-title" id="intro-passport-dept">???</h3>
+                                <p class="attr-panel-desc" id="intro-passport-panel1-desc">Overview of the service line</p>
                             </div>
-                            <div class="attr-box">
-                                <h5 class="attr-label">TOOL</h5>
-                                <h3 class="attr-value" id="intro-passport-tool">???</h3>
+                            <!-- Panel 2: Core Skill -->
+                            <div class="attr-panel">
+                                <div class="attr-panel-header">CORE SKILL</div>
+                                <div class="attr-panel-icon-container">
+                                    <span class="attr-panel-icon" id="intro-passport-panel2-icon">🛡️</span>
+                                </div>
+                                <h3 class="attr-panel-title" id="intro-passport-skill">???</h3>
+                                <p class="attr-panel-desc">Your strongest asset</p>
+                            </div>
+                            <!-- Panel 3: Tool -->
+                            <div class="attr-panel">
+                                <div class="attr-panel-header">TOOL</div>
+                                <div class="attr-panel-icon-container">
+                                    <span class="attr-panel-icon" id="intro-passport-panel3-icon">🪄</span>
+                                </div>
+                                <h3 class="attr-panel-title" id="intro-passport-tool">???</h3>
+                                <p class="attr-panel-desc">Your primary weapon</p>
                             </div>
                         </div>
                     </div>
                     
+                    <!-- Silhouette Divider -->
+                    <div class="silhouette-divider">
+                        <svg viewBox="0 0 1000 80" preserveAspectRatio="none" style="width: 100%; height: 60px; display: block; fill: #0f0a08; margin-bottom: -1px;">
+                            <path d="M0,80 L1000,80 L1000,70 L980,50 L965,70 L950,30 L935,70 L920,40 L900,20 L880,50 L870,40 L850,75 L840,40 L810,70 L790,25 L775,60 L750,70 L730,15 L710,50 L680,45 L660,10 L640,45 L600,60 L570,35 L550,35 L540,55 L500,50 L470,20 L450,55 L425,35 L410,55 L380,45 L350,55 L320,30 L300,55 L280,40 L250,75 L235,30 L210,65 L180,45 L160,15 L140,55 L120,30 L95,65 L70,35 L50,35 L40,55 L0,45 Z" />
+                        </svg>
+                    </div>
+                    
                     <!-- Dark Bottom Section with Return Button -->
                     <div class="passport-bottom">
-                        <p id="intro-department-description" class="description-text" style="color: #ccc; margin-bottom: 20px;">Description</p>
+                        <div class="unlockables-carousel">
+                            <div class="carousel-items">
+                                <div class="carousel-item">
+                                    <div class="item-circle"><span>🎒</span></div>
+                                    <div class="item-label">Portkey Container</div>
+                                </div>
+                                <div class="carousel-item">
+                                    <div class="item-circle"><span>🎟️</span></div>
+                                    <div class="item-label">Express Ticket</div>
+                                </div>
+                                <div class="carousel-item">
+                                    <div class="item-circle"><span>🚂</span></div>
+                                    <div class="item-label">Express Carriage</div>
+                                </div>
+                                <div class="carousel-item">
+                                    <div class="item-circle"><span>📌</span></div>
+                                    <div class="item-label">Dark Mark Pin</div>
+                                </div>
+                                <div class="carousel-item">
+                                    <div class="item-circle"><span>🖼️</span></div>
+                                    <div class="item-label">Magic Theme</div>
+                                </div>
+                                <div class="carousel-item">
+                                    <div class="item-circle"><span>📖</span></div>
+                                    <div class="item-label">Book of Monsters</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <p id="intro-department-description" class="description-text" style="color: #ccc; margin-bottom: 20px; font-size: 1rem; display: none;">Description</p>
                         <button id="close-houses-btn" class="ink-btn" style="color: #fff; border-color: #fff;">Return to Menu</button>
                     </div>
                 </div>
 
-                <button id="next-house-btn" class="ink-btn" style="color: #fff; font-size: 4rem; text-shadow: 0 0 10px #000; border: none;">&gt;</button>
+                <button id="next-house-btn" class="carousel-arrow next-arrow">&gt;</button>
+            </div>
+            
+            <div class="carousel-dots" id="carousel-dots">
+                <span class="dot active"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
             </div>
         </section>
 
@@ -276,6 +421,11 @@
                     <div class="setting-item">
                         <label for="setting-pbi-url" style="font-weight: bold; display: block; margin-bottom: 5px;">PowerBI Embed URL</label>
                         <input type="text" id="setting-pbi-url" class="ink-input" style="width: 100%; padding: 8px; font-family: inherit; background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid var(--parchment-border); border-radius: 4px;" placeholder="Paste PowerBI Publish-to-Web link here...">
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="setting-schools" style="font-weight: bold; display: block; margin-bottom: 5px;">Configure Schools (Comma Separated)</label>
+                        <input type="text" id="setting-schools" class="ink-input" style="width: 100%; padding: 8px; font-family: inherit; background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid var(--parchment-border); border-radius: 4px;" placeholder="e.g. School A, School B, School C">
                     </div>
                 </div>
 
@@ -396,7 +546,7 @@
                                         <span class="kpi-footer"><span class="kpi-trend-up">▲ 12%</span> vs last session</span>
                                     </div>
                                     <div class="pbi-kpi-card">
-                                        <span class="kpi-label">POPULAR DEPARTMENT</span>
+                                        <span class="kpi-label">POPULAR SUB SERVICE LINE</span>
                                         <span class="kpi-value" id="kpi-popular-dept" style="color: var(--gold);">Advisory</span>
                                         <span class="kpi-footer" id="kpi-popular-percentage">34% of recruits</span>
                                     </div>
@@ -406,9 +556,9 @@
                                         <span class="kpi-footer">Based on point spread</span>
                                     </div>
                                     <div class="pbi-kpi-card">
-                                        <span class="kpi-label">DATA UPTIME</span>
-                                        <span class="kpi-value" style="color: #4facfe;">100%</span>
-                                        <span class="kpi-footer">Active Live DB Sync</span>
+                                        <span class="kpi-label">TOP PREFERRED SSL</span>
+                                        <span class="kpi-value" id="kpi-preferred-dept" style="color: #4facfe;">???</span>
+                                        <span class="kpi-footer" id="kpi-preferred-percentage">0% of recruits</span>
                                     </div>
                                 </div>
 
@@ -417,7 +567,7 @@
                                     <!-- Visual 1: Bar Chart -->
                                     <div class="pbi-visual-card">
                                         <div class="visual-header">
-                                            <span class="visual-title">Sorting Distribution by Department</span>
+                                            <span class="visual-title">Sorting Distribution by Sub Service Line</span>
                                         </div>
                                         <div class="visual-chart-container">
                                             <canvas id="chart-dept-distribution"></canvas>
@@ -433,16 +583,47 @@
                                             <canvas id="chart-skill-breakdown"></canvas>
                                         </div>
                                     </div>
-
-                                    <!-- Visual 3: Line Chart -->
-                                    <div class="pbi-visual-card visual-full-width">
+                                    
+                                    <!-- Visual 3: Preference vs Placement -->
+                                    <div class="pbi-visual-card">
                                         <div class="visual-header">
-                                            <span class="visual-title">Recruitment Ceremony Sorting Activity (Cumulative)</span>
+                                            <span class="visual-title">Preference vs Placement (Alignment Gap)</span>
                                         </div>
-                                        <div class="visual-chart-container" style="height: 200px;">
-                                            <canvas id="chart-activity-timeline"></canvas>
+                                        <div class="visual-chart-container">
+                                            <canvas id="chart-pref-vs-placement"></canvas>
                                         </div>
                                     </div>
+
+                                    <!-- Visual 4: Talent Pipeline by University -->
+                                    <div class="pbi-visual-card">
+                                        <div class="visual-header">
+                                            <span class="visual-title">Talent Pipeline by University</span>
+                                        </div>
+                                        <div class="visual-chart-container">
+                                            <canvas id="chart-school-pipeline"></canvas>
+                                        </div>
+                                    </div>
+
+                                    <!-- Visual 5: Cohort Trait Profile -->
+                                    <div class="pbi-visual-card">
+                                        <div class="visual-header">
+                                            <span class="visual-title">Cohort Trait & Personality Profile</span>
+                                        </div>
+                                        <div class="visual-chart-container">
+                                            <canvas id="chart-cohort-traits"></canvas>
+                                        </div>
+                                    </div>
+
+                                    <!-- Visual 6: Secondary Affinity Distribution -->
+                                    <div class="pbi-visual-card">
+                                        <div class="visual-header">
+                                            <span class="visual-title">Secondary Affinity (Runner-Up)</span>
+                                        </div>
+                                        <div class="visual-chart-container">
+                                            <canvas id="chart-secondary-affinity"></canvas>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                             
@@ -462,9 +643,10 @@
                                                 <tr>
                                                     <th>Recruit ID</th>
                                                     <th>Recruit Name</th>
-                                                    <th>Assigned Department</th>
+                                                    <th>School</th>
+                                                    <th>Preferred SSL</th>
+                                                    <th>Assigned Sub Service Line</th>
                                                     <th>Date/Time</th>
-                                                    <th>Match Score Details</th>
                                                     <th>Action</th>
                                                 </tr>
                                             </thead>
@@ -475,6 +657,24 @@
                                     </div>
                                 </div>
                             </div>
+                            
+                            <!-- Page 3: Scoring Configuration -->
+                            <div class="pbi-page-content" id="pbi-page-3">
+                                <div class="pbi-visual-card visual-full-width" style="height: 100%; display: flex; flex-direction: column;">
+                                    <div class="visual-header" style="flex-shrink: 0;">
+                                        <span class="visual-title">Ceremony Scoring Configuration</span>
+                                        <div style="display: flex; gap: 10px;">
+                                            <button id="btn-add-question" class="pbi-tb-btn" style="display: inline-flex; background: #0078d4; color: #fff; padding: 4px 10px; border-radius: 4px; border: none; cursor: pointer;">+ Add Question</button>
+                                            <button id="btn-save-scores" class="pbi-tb-btn" style="display: inline-flex; background: #107c41; color: #fff; padding: 4px 10px; border-radius: 4px; border: none; cursor: pointer;">Save Configuration</button>
+                                        </div>
+                                    </div>
+                                    <div class="pbi-table-container" style="flex: 1; overflow-y: auto; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                                        <div id="questions-editor-container" style="display: flex; flex-direction: column; gap: 20px;">
+                                            <!-- Dynamic question cards injected via JS -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- PowerBI Bottom Page Navigation bar -->
@@ -482,8 +682,9 @@
                             <div class="pbi-nav-tabs">
                                 <button class="pbi-tab active" data-target="pbi-page-1">Recruits Overview</button>
                                 <button class="pbi-tab" data-target="pbi-page-2">Live Logs & Feed</button>
+                                <button class="pbi-tab" data-target="pbi-page-3">Scoring Config</button>
                             </div>
-                            <span class="pbi-nav-zoom">Page 1 of 2</span>
+                            <span class="pbi-nav-zoom">Page 1 of 3</span>
                         </footer>
                     </main>
                 </div>
@@ -508,7 +709,7 @@
                         <label style="font-weight: bold; color: #333; font-family: 'Segoe UI', sans-serif;">Storage Provider:</label>
                         <select id="db-provider-select" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc; font-family: 'Segoe UI', sans-serif;">
                             <option value="local">Local Storage (Mock Only)</option>
-                            <option value="firebase">Google Firebase (Realtime DB)</option>
+                            <option value="firebase" selected>Google Firebase (Realtime DB)</option>
                             <option value="sharepoint">Azure SharePoint (List API)</option>
                         </select>
                     </div>
@@ -564,6 +765,7 @@
     <script type="module" src="firebase-config.js"></script>
     <script type="module" src="data_questions.js"></script>
     <script type="module" src="scene.js"></script>
-    <script type="module" src="app_v2.js?v=3"></script>
+    <script type="module" src="admin.js"></script>
+    <script type="module" src="app_v2.js?v=4"></script>
 </body>
 </html>

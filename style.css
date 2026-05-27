@@ -54,21 +54,127 @@ body {
     /* Fog/Cloud starting state */
     opacity: 0;
     filter: blur(25px) brightness(0.5);
-    transform: scale(1.15);
     
     /* Cinematic slow reveal */
-    transition: all 3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition: opacity 3s cubic-bezier(0.25, 0.8, 0.25, 1), filter 3s cubic-bezier(0.25, 0.8, 0.25, 1);
     pointer-events: none;
     mix-blend-mode: screen; 
 }
 
 /* Slowly reveal the castle like clearing fog when hovering over the intro graphic */
-#splash-screen:has(.intro-graphic:hover) .exhibition-bg::after {
+#splash-screen:has(.intro-graphic:hover) .exhibition-bg::after,
+#splash-screen:has(.intro-graphic:active) .exhibition-bg::after {
     opacity: 0.55;
     filter: blur(0px) brightness(1);
-    transform: scale(1);
 }
 
+.reveal-hint {
+    position: relative;
+    margin-top: 40px;
+    color: var(--gold);
+    font-size: 1.1rem;
+    font-family: 'IM Fell English', serif;
+    font-style: italic;
+    letter-spacing: 1.5px;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+    animation: pulseHint 2s infinite ease-in-out;
+    width: auto;
+    justify-content: center;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+.reveal-hint .wand-icon {
+    position: relative;
+    margin-right: 8px;
+    font-size: 1.2rem;
+    display: inline-block;
+    animation: wandSparkle 1.5s ease-in-out infinite;
+}
+
+@keyframes wandSparkle {
+    0%, 100% { transform: rotate(0deg) scale(1); filter: brightness(1); }
+    25% { transform: rotate(-10deg) scale(1.15); filter: brightness(1.5); }
+    50% { transform: rotate(5deg) scale(1); filter: brightness(1); }
+    75% { transform: rotate(-5deg) scale(1.1); filter: brightness(1.3); }
+}
+
+@keyframes pulseHint {
+    0%, 100% { opacity: 0.4; transform: translateY(0); }
+    50% { opacity: 1; transform: translateY(-4px); }
+}
+
+/* Hide the hint when the user is hovering/holding */
+#splash-screen:has(.intro-graphic:hover) .reveal-hint,
+#splash-screen:has(.intro-graphic:active) .reveal-hint {
+    opacity: 0 !important;
+    animation: none;
+    transition: opacity 0.3s;
+}
+
+/* --- ATMOSPHERIC OVERLAYS --- */
+
+/* Cinematic vignette - dark edges, bright center */
+.splash-vignette {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 40%,
+        rgba(0, 0, 0, 0.4) 75%,
+        rgba(0, 0, 0, 0.8) 100%
+    );
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* Bottom fog/mist layer */
+.splash-fog {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 30%;
+    background: linear-gradient(
+        to top,
+        rgba(0, 8, 20, 0.9) 0%,
+        rgba(0, 8, 20, 0.5) 30%,
+        rgba(0, 8, 20, 0.2) 60%,
+        transparent 100%
+    );
+    z-index: 3;
+    pointer-events: none;
+    animation: fogDrift 8s ease-in-out infinite alternate;
+}
+
+@keyframes fogDrift {
+    0% { opacity: 0.7; transform: translateY(0); }
+    100% { opacity: 1; transform: translateY(-8px); }
+}
+
+/* Twinkling stars */
+.splash-stars {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.twinkle-star {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.6);
+    animation: twinkle 3s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.2; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.4); }
+}
 /* 3D Canvas for smoke/fireflies */
 #webgl-canvas {
     position: absolute;
@@ -121,6 +227,11 @@ body {
     justify-content: center;
     align-items: center;
     flex-direction: column;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
 
 .snitch-container {
@@ -153,6 +264,33 @@ body {
     background: linear-gradient(to bottom, #ffe699, #cda73b);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    position: relative;
+}
+
+/* Gold shimmer sweep across logo text */
+.hp-logo::after {
+    content: 'Auditour';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(
+        90deg, 
+        transparent 0%, 
+        transparent 35%, 
+        rgba(255, 230, 153, 0.8) 50%, 
+        transparent 65%, 
+        transparent 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmerSweep 4s ease-in-out infinite;
+    animation-delay: 2s;
+}
+
+@keyframes shimmerSweep {
+    0% { background-position: 200% center; }
+    100% { background-position: -200% center; }
 }
 
 .hp-sublogo {
@@ -172,14 +310,24 @@ body {
 
 .ink-btn.gold-ink {
     color: var(--gold);
-    border-color: transparent;
+    border: 1px solid rgba(212, 175, 55, 0.3);
     font-size: 1.5rem;
     text-shadow: 0 0 10px rgba(212,175,55,0.4);
+    padding: 0.6rem 2rem;
+    border-radius: 30px;
+    background: rgba(212, 175, 55, 0.06);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    letter-spacing: 1px;
 }
 .ink-btn.gold-ink:hover {
     color: #fff;
     border-color: var(--gold);
     text-shadow: 0 0 20px var(--gold);
+    background: rgba(212, 175, 55, 0.15);
+    box-shadow: 0 0 25px rgba(212, 175, 55, 0.3), inset 0 0 15px rgba(212, 175, 55, 0.1);
+    transform: translateY(-2px);
 }
 
 /* Snitch Animation */
@@ -210,7 +358,7 @@ body {
     width: 100%; height: 100%;
     background: radial-gradient(circle at 30% 30%, #fff, var(--gold));
     border-radius: 50%;
-    box-shadow: 0 0 15px var(--gold-glow);
+    box-shadow: 0 0 15px var(--gold-glow), 0 0 30px rgba(212, 175, 55, 0.3);
 }
 
 .wing {
@@ -252,27 +400,42 @@ body {
 .parchment-panel {
     background-color: var(--parchment-bg);
     background-image: 
-        linear-gradient(rgba(245, 235, 215, 0.85), rgba(245, 235, 215, 0.85)), /* Brighten the texture heavily */
+        linear-gradient(rgba(245, 235, 215, 0.85), rgba(245, 235, 215, 0.85)),
         url('assets/bg_parchment.png');
     background-size: cover;
-    background-blend-mode: normal; /* Normal blending so the white washes out the dark creases */
+    background-blend-mode: normal;
     border: 2px solid var(--parchment-border);
     border-radius: 4px 8px 3px 6px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 0 40px rgba(100, 80, 50, 0.6);
+    box-shadow: 
+        0 25px 60px rgba(0, 0, 0, 0.85),
+        0 0 40px rgba(0, 0, 0, 0.3),
+        inset 0 0 40px rgba(100, 80, 50, 0.5);
     padding: 3rem;
     text-align: center;
     max-width: 600px;
     position: relative;
     z-index: 10;
     pointer-events: auto;
-    filter: drop-shadow(0 0 20px rgba(0,0,0,0.5));
+}
+
+/* Decorative corner ornaments */
+.parchment-panel::before {
+    content: '✦';
+    position: absolute;
+    top: 12px; left: 16px;
+    font-size: 1rem;
+    color: var(--parchment-border);
+    opacity: 0.5;
+    pointer-events: none;
 }
 
 .parchment-panel::after {
-    content: '';
+    content: '✦';
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+    bottom: 12px; right: 16px;
+    font-size: 1rem;
+    color: var(--parchment-border);
+    opacity: 0.5;
     pointer-events: none;
 }
 
@@ -296,6 +459,15 @@ body {
     font-size: 5rem;
 }
 
+.ornament-divider {
+    font-size: 1.2rem;
+    color: var(--gold);
+    opacity: 0.5;
+    margin: -0.5rem 0 1rem 0;
+    letter-spacing: 8px;
+    text-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+}
+
 .welcome-text {
     font-family: 'Quintessential', cursive;
     font-size: 2.2rem;
@@ -310,6 +482,39 @@ body {
     margin-bottom: 2.5rem;
     line-height: 1.5;
     font-style: italic;
+}
+
+/* Styled Input Field */
+.ink-input {
+    width: 80%;
+    padding: 14px 20px;
+    font-size: 1.2rem;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 1px;
+    text-align: center;
+    color: #1a1108;
+    background: rgba(255, 255, 255, 0.4);
+    border: 2px solid var(--parchment-border);
+    border-radius: 6px;
+    outline: none;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.ink-input::placeholder {
+    color: rgba(80, 60, 30, 0.5);
+    font-style: italic;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+}
+
+.ink-input:focus {
+    border-color: var(--gold);
+    background: rgba(255, 255, 255, 0.6);
+    box-shadow: 
+        inset 0 2px 6px rgba(0,0,0,0.05),
+        0 0 15px rgba(212, 175, 55, 0.2);
 }
 
 .question-text {
@@ -329,42 +534,76 @@ body {
     border: none;
     border-bottom: 2px solid transparent;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: inline-block;
+    position: relative;
 }
 
 .ink-btn:hover {
     color: #000;
-    border-bottom: 2px solid var(--ink-light);
-    transform: scale(1.05);
+    border-bottom: 2px solid var(--gold);
+    transform: translateY(-2px);
+    text-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
 }
 
 .options-grid {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 0.8rem;
 }
 
 .option-btn {
-    background: transparent;
-    border: none;
-    border-bottom: 1px dotted var(--parchment-border);
-    padding: 1rem;
-    color: var(--ink-color);
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(139, 109, 56, 0.2);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    color: #1a1a1a;
     font-family: 'IM Fell English', serif;
-    font-size: 1.4rem;
+    font-size: 1.35rem;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     text-align: left;
     position: relative;
-    font-style: italic;
+    font-style: normal;
+    line-height: 1.4;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
 }
 
 .option-btn:hover {
-    background: rgba(0, 0, 0, 0.03);
+    background: rgba(212, 175, 55, 0.1);
+    border-color: var(--gold);
     color: #000;
-    border-bottom: 1px solid var(--ink-color);
     padding-left: 1.5rem;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.15), inset 0 0 20px rgba(212, 175, 55, 0.05);
+    transform: translateX(4px);
+}
+
+.option-btn.selected {
+    background: rgba(212, 175, 55, 0.15);
+    border-color: var(--gold);
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.2), inset 0 0 20px rgba(212, 175, 55, 0.08);
+    color: #000;
+    font-weight: 600;
+}
+
+.quiz-nav-container {
+    margin-top: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.quiz-nav-container .ink-btn {
+    font-size: 1.2rem;
+}
+
+.intro-nav-container {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 20px;
 }
 
 .progress-bar-container {
@@ -375,50 +614,122 @@ body {
     height: 4px;
     background: rgba(0,0,0,0.1);
     pointer-events: none;
+    border-radius: 2px;
+    overflow: hidden;
 }
 
 #progress-bar {
     height: 100%;
     width: 0%;
-    background: var(--ink-light);
+    background: linear-gradient(90deg, var(--gold), #ffe699, var(--gold));
+    background-size: 200% 100%;
+    animation: progressShimmer 2s linear infinite;
     transition: width 0.8s ease;
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
+    border-radius: 2px;
+}
+
+@keyframes progressShimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
 }
 
 /* --- PASSPORT CARD REVEAL --- */
+.core-audit-theme {
+    --panel-accent: #d4af37;
+    --panel-accent-glow: rgba(212, 175, 55, 0.4);
+}
+.aoa-theme {
+    --panel-accent: #ff8c00;
+    --panel-accent-glow: rgba(255, 140, 0, 0.4);
+}
+.did-theme {
+    --panel-accent: #38b6ff;
+    --panel-accent-glow: rgba(56, 182, 255, 0.4);
+}
+.digital-theme {
+    --panel-accent: #39ff14;
+    --panel-accent-glow: rgba(57, 255, 20, 0.4);
+}
+.tech-risk-theme, .tech_risk-theme {
+    --panel-accent: #ff5757;
+    --panel-accent-glow: rgba(255, 87, 87, 0.4);
+}
+.faas-theme {
+    --panel-accent: #00b4d8;
+    --panel-accent-glow: rgba(0, 180, 216, 0.4);
+}
+
 .passport-card {
     width: 900px;
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+    box-shadow: 
+        0 30px 60px rgba(0,0,0,0.8),
+        0 0 40px rgba(0, 0, 0, 0.3),
+        inset 0 0 1px rgba(255, 255, 255, 0.1);
     pointer-events: auto;
     position: relative;
     z-index: 10;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(to bottom, #4a4a4a, #2a2a2a);
+    transition: background 0.5s ease;
 }
 
 .passport-top {
     display: flex;
-    padding: 3rem;
+    padding: 2.5rem;
     color: #fff;
-    /* Default background, will be overridden by JS */
-    background: linear-gradient(to bottom, #4a4a4a, #2a2a2a); 
+    background: transparent; 
     position: relative;
-    border-bottom: 2px solid rgba(255,255,255,0.1);
-    transition: background 0.5s ease;
+    overflow: hidden;
+}
+
+/* Subtle shimmer on the passport top section */
+.passport-top::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -50%;
+    width: 200%; height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.03) 45%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.03) 55%,
+        transparent 100%
+    );
+    animation: cardShimmer 6s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes cardShimmer {
+    0% { transform: translateX(-30%); }
+    100% { transform: translateX(30%); }
 }
 
 .passport-profile {
     flex: 1;
-    text-align: center;
-    border-right: 1px solid rgba(255,255,255,0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
     padding-right: 2rem;
+    justify-content: center;
+}
+
+.profile-info-text {
+    text-align: center;
+    margin-bottom: 15px;
 }
 
 .passport-name {
     font-family: 'Pirata One', cursive;
-    font-size: 2.5rem;
+    font-size: 2.3rem;
     letter-spacing: 2px;
     margin-bottom: 5px;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    color: #fff;
 }
 
 .passport-sub {
@@ -432,74 +743,270 @@ body {
 
 .passport-date {
     font-family: 'IM Fell English', serif;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-style: italic;
     opacity: 0.6;
-    margin-bottom: 20px;
+    margin-bottom: 0px;
 }
 
 .profile-pic-box {
-    width: 180px;
-    height: 240px;
-    margin: 0 auto;
-    background: rgba(0,0,0,0.3);
-    border: 2px solid rgba(255,255,255,0.3);
+    width: 150px;
+    height: 150px;
+    background: rgba(0,0,0,0.4);
+    border: 3px solid var(--gold);
     border-radius: 8px;
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,0,0,0.8);
+    position: relative;
+    overflow: hidden;
 }
 
 .passport-attributes {
     flex: 2;
     display: flex;
-    justify-content: space-around;
-    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
     padding-left: 2rem;
 }
 
-.attr-box {
-    background: rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.15);
+.attr-panel {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    padding: 1.5rem 1rem;
+    padding: 1.2rem 0.8rem;
     text-align: center;
-    width: 130px;
-    height: 180px;
+    flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    align-items: center;
+    justify-content: space-between;
+    min-height: 240px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.4), inset 0 0 15px rgba(0,0,0,0.6);
+    transition: all 0.3s ease;
+    border-bottom: 3px solid var(--panel-accent, rgba(255,255,255,0.2));
 }
 
-.attr-label {
+.attr-panel-header {
     font-family: 'Lato', sans-serif;
-    font-size: 0.75rem;
+    font-size: 0.65rem;
+    font-weight: 700;
     letter-spacing: 2px;
-    opacity: 0.7;
-    margin-bottom: 15px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 8px;
 }
 
-.attr-value {
-    font-family: 'IM Fell English', serif;
-    font-size: 1.4rem;
+.attr-panel-icon-container {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1.5px solid var(--panel-accent, #aaa);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-bottom: 10px;
-    color: #fff;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    box-shadow: 0 0 12px rgba(0,0,0,0.3);
 }
 
-.attr-desc {
+.attr-panel-icon {
+    font-size: 1.8rem;
+}
+
+.attr-panel-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 6px;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+}
+
+.attr-panel-desc {
     font-family: 'Lato', sans-serif;
-    font-size: 0.75rem;
-    opacity: 0.5;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.65);
     line-height: 1.3;
+    flex-grow: 1;
+    margin-bottom: 12px;
+}
+
+.attr-panel-btn {
+    background: transparent;
+    border: none;
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--panel-accent, #fff);
+    cursor: pointer;
+    border-bottom: 1px solid transparent;
+    transition: all 0.3s ease;
+    padding-bottom: 2px;
+}
+
+.attr-panel-btn:hover {
+    border-bottom-color: var(--panel-accent, #fff);
+    text-shadow: 0 0 8px var(--panel-accent-glow, rgba(255,255,255,0.4));
+}
+
+.silhouette-divider {
+    overflow: hidden;
+    background: transparent;
 }
 
 .passport-bottom {
-    background: #110c0a;
-    padding: 2rem;
+    background: #0f0a08;
+    padding: 2rem 3rem;
     text-align: center;
+    position: relative;
+    border-top: none;
+}
+
+.unlockables-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    font-weight: bold;
+    letter-spacing: 4px;
+    color: #fff;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.unlockables-title span {
+    color: var(--gold);
+    font-size: 0.8rem;
+}
+
+.unlockables-carousel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 1.5rem;
+}
+
+.carousel-nav-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 2rem;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    padding: 10px;
+}
+
+.carousel-nav-btn:hover {
+    color: #fff;
+}
+
+.carousel-items {
+    display: flex;
+    gap: 12px;
+    overflow: hidden;
+    justify-content: center;
+}
+
+.carousel-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 90px;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.item-circle {
+    width: 65px;
+    height: 65px;
+    min-width: 65px;
+    min-height: 65px;
+    max-width: 65px;
+    max-height: 65px;
+    aspect-ratio: 1 / 1;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5), inset 0 0 10px rgba(0,0,0,0.6);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.item-circle:hover {
+    border-color: var(--gold);
+    background: rgba(212, 175, 55, 0.1);
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+    transform: scale(1.05);
+}
+
+.item-label {
+    font-family: 'Lato', sans-serif;
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.unlock-more-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    padding: 8px 24px;
+    border-radius: 20px;
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.unlock-more-btn:hover {
+    background: #fff;
+    color: #000;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+    transform: scale(1.02);
+}
+
+.passport-bottom .description-text {
+    color: rgba(200, 190, 170, 0.9) !important;
+    font-size: 1.1rem;
+    margin-top: 15px;
+    margin-bottom: 0;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.passport-bottom .ink-btn {
+    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 30px;
+    padding: 0.5rem 1.8rem;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(4px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.passport-bottom .ink-btn:hover {
+    border-color: #fff;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.18);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
 }
 
 /* --- SETTINGS SCREEN STYLES --- */
@@ -523,6 +1030,10 @@ body {
     border: 1px solid var(--parchment-border) !important;
     color: #fff !important;
     transition: all 0.3s ease;
+}
+
+.ink-input::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
 }
 
 .ink-select:focus, .ink-input:focus {
@@ -949,6 +1460,9 @@ body {
 .pbi-table-container {
     width: 100%;
     overflow-x: auto;
+    overflow-y: auto;
+    height: 100%;
+    max-height: 100%;
     flex: 1;
 }
 
@@ -1152,6 +1666,78 @@ body {
     color: #000;
 }
 
+/* --- CAROUSEL STYLES --- */
+.houses-carousel-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    z-index: 10;
+    max-width: 100%;
+}
+
+.carousel-arrow {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    user-select: none;
+    z-index: 20;
+}
+
+.carousel-arrow:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #fff;
+    color: #ffd700;
+    transform: scale(1.1);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+}
+
+.carousel-arrow:active {
+    transform: scale(0.95);
+}
+
+.carousel-dots {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+    z-index: 15;
+    position: relative;
+}
+
+.carousel-dots .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.3);
+}
+
+.carousel-dots .dot:hover {
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.carousel-dots .dot.active {
+    background: #ffd700;
+    box-shadow: 0 0 10px #ffd700, 0 0 3px #ffd700;
+    transform: scale(1.3);
+}
+
 /* --- MOBILE RESPONSIVENESS --- */
 @media (max-width: 768px) {
     .global-controls {
@@ -1162,6 +1748,13 @@ body {
         overflow-y: auto;
         align-items: flex-start;
         padding: 20px 10px;
+    }
+    
+    /* Houses screen needs to stay centered */
+    #houses-screen {
+        align-items: center !important;
+        padding: 10px !important;
+        flex-direction: column !important;
     }
     
     .hp-logo {
@@ -1178,11 +1771,40 @@ body {
     .snitch-svg {
         transform: scale(0.8);
     }
+    
+    /* Make the snitch bigger and glowier on mobile */
+    .snitch {
+        width: 22px !important;
+        height: 22px !important;
+    }
+    
+    .snitch-body {
+        box-shadow: 0 0 20px var(--gold-glow), 0 0 40px rgba(212, 175, 55, 0.5), 0 0 60px rgba(212, 175, 55, 0.2) !important;
+    }
+    
+    .wing {
+        width: 28px !important;
+        height: 8px !important;
+    }
+    
+    .left-wing {
+        left: -20px !important;
+    }
+    
+    .right-wing {
+        right: -20px !important;
+    }
 
     .parchment-panel {
         max-width: 95%;
         padding: 1.5rem 1rem;
-        margin: auto 0;
+        margin: 20px auto;
+    }
+
+    .ink-input {
+        width: 95% !important;
+        font-size: 0.95rem !important;
+        padding: 12px 10px !important;
     }
 
     .question-text {
@@ -1190,20 +1812,64 @@ body {
         margin-bottom: 1.5rem !important;
     }
     
+    .description-text {
+        font-size: 1.1rem !important;
+        margin-bottom: 15px !important;
+        line-height: 1.3 !important;
+    }
+    
     .options-grid {
         gap: 0.8rem !important;
     }
     
     .option-btn {
-        font-size: 1.1rem !important;
-        padding: 0.6rem 0.8rem !important;
+        font-size: 1.05rem !important;
+        padding: 0.8rem 1rem !important;
+        font-style: normal !important;
+        line-height: 1.3 !important;
+        white-space: normal !important;
     }
+    
+    .quiz-nav-container {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: 
+            "prev next"
+            "abandon abandon";
+        gap: 15px !important;
+        margin-top: 20px !important;
+        align-items: center;
+    }
+    
+    #prev-quiz-btn { grid-area: prev; text-align: left; }
+    #next-quiz-btn { grid-area: next; text-align: right; }
+    #cancel-quiz-btn { grid-area: abandon; text-align: center; }
 
     .passport-card {
-        width: 95%;
-        margin: auto 0;
-        max-height: 90vh;
+        width: 92% !important;
+        margin: 0 auto !important;
+        max-height: 80vh;
         overflow-y: auto;
+    }
+    
+    .houses-carousel-wrapper {
+        width: 100% !important;
+        justify-content: center !important;
+        gap: 0 !important;
+    }
+    
+    /* Hide arrows on mobile — users tap the dots to navigate */
+    #houses-screen .carousel-arrow {
+        display: none !important;
+    }
+    
+    .carousel-dots {
+        margin-top: 15px !important;
+    }
+    
+    .carousel-dots .dot {
+        width: 14px !important;
+        height: 14px !important;
     }
 
     .passport-top {
@@ -1267,34 +1933,99 @@ body {
         gap: 6px !important;
         width: 100% !important;
         padding-left: 0 !important;
+        margin-top: 15px !important;
     }
 
-    .attr-box {
+    .attr-panel {
         flex: 1 1 0px !important;
         min-width: 0 !important;
         height: auto !important;
-        min-height: 95px !important;
-        padding: 6px 3px !important;
+        min-height: 120px !important;
+        padding: 8px 4px !important;
         margin-bottom: 0 !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
     }
 
-    .attr-label {
-        font-size: 0.6rem !important;
-        margin-bottom: 6px !important;
-    }
-
-    .attr-value {
-        font-size: 0.75rem !important;
+    .attr-panel-header {
+        font-size: 0.55rem !important;
         margin-bottom: 4px !important;
     }
 
-    .attr-desc {
-        font-size: 0.55rem !important;
+    .attr-panel-icon-container {
+        width: 32px !important;
+        height: 32px !important;
+        margin-bottom: 4px !important;
+        border-width: 1px !important;
+    }
+
+    .attr-panel-icon {
+        font-size: 1.1rem !important;
+    }
+
+    .attr-panel-title {
+        font-size: 0.75rem !important;
+        margin-bottom: 2px !important;
+    }
+
+    .attr-panel-desc {
+        font-size: 0.52rem !important;
         line-height: 1.1 !important;
+        margin-bottom: 6px !important;
+    }
+
+    .attr-panel-btn {
+        font-size: 0.52rem !important;
+        padding-bottom: 0 !important;
+    }
+
+    .unlockables-title {
+        font-size: 0.8rem !important;
+        letter-spacing: 2px !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .unlockables-carousel {
+        gap: 8px !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .carousel-nav-btn {
+        font-size: 1.3rem !important;
+        padding: 5px !important;
+    }
+
+    .carousel-item {
+        width: 55px !important;
+    }
+
+    .item-circle {
+        width: 42px !important;
+        height: 42px !important;
+        min-width: 42px !important;
+        min-height: 42px !important;
+        max-width: 42px !important;
+        max-height: 42px !important;
+        aspect-ratio: 1 / 1 !important;
+        font-size: 1.2rem !important;
+        border-width: 1px !important;
+    }
+
+    .item-label {
+        font-size: 0.5rem !important;
+        letter-spacing: 0px !important;
+    }
+
+    .unlock-more-btn {
+        font-size: 0.65rem !important;
+        padding: 6px 16px !important;
     }
 
     .passport-bottom {
-        padding: 1rem !important;
+        padding: 1.2rem 1rem !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 10px !important;
     }
 
     .passport-bottom div[style*="display: flex"] {
@@ -1324,29 +2055,22 @@ body {
         border-color: #fff !important;
     }
 
-    /* Keep quiz buttons inline on mobile */
-    .parchment-panel > div[style*="display: flex"] {
-        flex-direction: row !important;
-        justify-content: space-between !important;
-        gap: 5px !important;
-        width: 100% !important;
-    }
-
-    .parchment-panel > div[style*="display: flex"] .ink-btn {
-        width: auto !important;
-        font-size: 0.95rem !important;
-        padding: 5px 10px !important;
-        margin: 0 !important;
-    }
-
-    /* Wrap Intro/Parchment Flex Buttons if they are indeed wrappers */
-    .intro-btn-wrapper {
+    /* Keep Intro Buttons flexible */
+    .intro-nav-container {
         flex-direction: column !important;
         align-items: center;
         gap: 15px !important;
         width: 100%;
     }
-
+    
+    .intro-nav-container .ink-btn {
+        width: 100%;
+    }
+    .intro-btn-wrapper {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 15px !important;
+    }
     .intro-btn-wrapper .ink-btn {
         width: 80% !important;
         margin: 0 auto !important;
@@ -1354,26 +2078,35 @@ body {
 
     /* Houses Carousel wrapper */
     .houses-carousel-wrapper {
-        flex-direction: column !important;
-        gap: 10px !important;
-        align-items: center !important;
+        position: relative !important;
+        flex-direction: row !important;
         width: 100% !important;
+        justify-content: center !important;
+        gap: 0 !important;
         margin: auto 0;
     }
     
-    #prev-house-btn, #next-house-btn {
-        font-size: 2rem !important;
-        padding: 5px !important;
-        margin: 0 !important;
-        height: auto !important;
-        width: auto !important;
+    .carousel-arrow {
+        position: absolute !important;
+        top: 25% !important;
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 1.25rem !important;
+        background: rgba(0,0,0,0.65) !important;
+        border: 1px solid rgba(255,255,255,0.25) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        z-index: 25 !important;
+        transform: none !important;
     }
     
-    #prev-house-btn {
-        transform: rotate(90deg);
+    .prev-arrow {
+        left: 2px !important;
     }
-    #next-house-btn {
-        transform: rotate(90deg);
+    
+    .next-arrow {
+        right: 2px !important;
     }
 }
 
@@ -1464,3 +2197,106 @@ body {
 #admin-screen.hp-theme .pbi-tab {
     font-family: 'Cinzel', serif;
 }
+
+/* --- PURSUIT DETAILS MODAL --- */
+.pursuit-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.pursuit-modal.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.pursuit-modal-content {
+    background: #f5ebd5;
+    border: 3px double #8b6d38;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 450px;
+    padding: 2.2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 0 45px rgba(139,109,56,0.25);
+    position: relative;
+    transform: scale(0.9);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    color: #1a1a1a;
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+}
+
+.pursuit-modal.active .pursuit-modal-content {
+    transform: scale(1);
+}
+
+.pursuit-modal-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #8b6d38;
+    transition: transform 0.2s ease;
+}
+
+.pursuit-modal-close:hover {
+    transform: scale(1.1);
+    color: #1a1a1a;
+}
+
+.pursuit-modal-badge {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    margin: 0 auto 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    border: 2px solid rgba(255,255,255,0.2);
+}
+
+.pursuit-modal-title {
+    font-family: 'Cinzel', 'IM Fell English', serif;
+    font-size: 1.6rem;
+    margin-bottom: 0.4rem;
+    color: #2c241b;
+    font-weight: 700;
+}
+
+.pursuit-modal-subtitle {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #8b6d38;
+    margin-bottom: 1.2rem;
+    font-weight: 800;
+}
+
+.pursuit-modal-desc {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #2c241b;
+    background: rgba(0,0,0,0.04);
+    padding: 1.2rem;
+    border-radius: 8px;
+    border: 1px dashed rgba(139, 109, 56, 0.4);
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+

@@ -2,46 +2,40 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, push, set, get } from "firebase/database";
 
 let app, database;
-let currentConfig = { provider: 'local' };
+let currentConfig = { provider: 'firebase' };
 
 export function initDatabase(config) {
-    currentConfig = config || { provider: 'local' };
-    
-    if (currentConfig.provider === 'firebase') {
-        const firebaseConfig = {
-            apiKey: currentConfig.fb_apiKey,
-            authDomain: currentConfig.fb_authDomain,
-            databaseURL: currentConfig.fb_databaseURL,
-            projectId: currentConfig.fb_projectId,
-            appId: currentConfig.fb_appId
-        };
-        
-        try {
-            app = initializeApp(firebaseConfig);
-            database = getDatabase(app);
-            console.log("Firebase initialized successfully.");
-        } catch (error) {
-            console.error("Firebase initialization error:", error);
-            database = null;
-        }
-    } else if (currentConfig.provider === 'sharepoint') {
-        console.log("Azure SharePoint selected. Ready to push to Graph API.");
-        // Note: MSAL.js initialization would typically happen here for Auth.
-        app = null;
-        database = null;
-    } else {
-        console.log("Local Storage provider selected.");
-        app = null;
+    // Hardcoded Firebase configuration from user
+    const firebaseConfig = {
+        apiKey: "AIzaSyCZCMyVTAsKi-pyEH53DirR7aoMt0CunQA",
+        authDomain: "sorting-ceremony-e0847.firebaseapp.com",
+        databaseURL: "https://sorting-ceremony-e0847-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "sorting-ceremony-e0847",
+        storageBucket: "sorting-ceremony-e0847.firebasestorage.app",
+        messagingSenderId: "980501505032",
+        appId: "1:980501505032:web:4511da9215a61a6980ddbd",
+        measurementId: "G-0WKGRQGBZ0"
+    };
+
+    try {
+        app = initializeApp(firebaseConfig);
+        database = getDatabase(app);
+        currentConfig.provider = 'firebase';
+        console.log("Firebase initialized successfully with hardcoded config.");
+    } catch (error) {
+        console.error("Firebase initialization error:", error);
         database = null;
     }
 }
 
 // Function to save a sorting entry
-export async function saveSortingResult(userName, departmentId, answers) {
+export async function saveSortingResult(userName, departmentId, answers, school, preferredSSL) {
     const payload = {
         userName: userName || "Anonymous Student",
         department: departmentId,
         answers: answers,
+        school: school || "",
+        preferredSSL: preferredSSL || "",
         timestamp: Date.now(),
         isoTime: new Date().toISOString()
     };
@@ -110,6 +104,8 @@ export async function fetchSortingResults() {
                         id: key.substring(1, 8).toUpperCase(), // generate a unique recruit ID from firebase key
                         name: item.userName || "Anonymous User",
                         dept: item.department,
+                        school: item.school || "",
+                        preferredSSL: item.preferredSSL || "",
                         timestamp: item.isoTime || new Date(item.timestamp).toISOString(),
                         details: "Cloud Firebase entry"
                     };
@@ -122,4 +118,60 @@ export async function fetchSortingResults() {
         }
     }
     return null;
+}
+
+// Function to save custom question scores
+export async function saveCustomScores(customQuestions) {
+    if (currentConfig.provider === 'firebase') {
+        if (!database) {
+            console.warn("Database not initialized, saving locally as fallback.");
+            localStorage.setItem('local_custom_scores', JSON.stringify(customQuestions));
+            return true;
+        }
+        try {
+            const scoresRef = ref(database, 'settings/custom_scores');
+            await set(scoresRef, customQuestions);
+            console.log("Custom scores saved to Firebase!");
+            return true;
+        } catch (error) {
+            console.error("Error saving custom scores to Firebase:", error);
+            return false;
+        }
+    } else {
+        localStorage.setItem('local_custom_scores', JSON.stringify(customQuestions));
+        return true;
+    }
+}
+
+// Function to fetch custom question scores
+export async function fetchCustomScores() {
+    if (currentConfig.provider === 'firebase') {
+        if (!database) {
+            console.warn("Database not initialized, fetching locally as fallback.");
+            try {
+                const saved = localStorage.getItem('local_custom_scores');
+                return saved ? JSON.parse(saved) : null;
+            } catch (e) {
+                return null;
+            }
+        }
+        try {
+            const scoresRef = ref(database, 'settings/custom_scores');
+            const snapshot = await get(scoresRef);
+            if (snapshot.exists()) {
+                return snapshot.val();
+            }
+            return null;
+        } catch (error) {
+            console.error("Error fetching custom scores from Firebase:", error);
+            return null;
+        }
+    } else {
+        try {
+            const saved = localStorage.getItem('local_custom_scores');
+            return saved ? JSON.parse(saved) : null;
+        } catch (e) {
+            return null;
+        }
+    }
 }
