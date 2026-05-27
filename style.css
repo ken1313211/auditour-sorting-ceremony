@@ -1447,7 +1447,7 @@ body {
 }
 
 .visual-title {
-    font-size: 0.85rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: #d1d1d1;
 }
@@ -1455,7 +1455,7 @@ body {
 .visual-chart-container {
     position: relative;
     flex: 1;
-    min-height: 180px;
+    min-height: 280px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1645,6 +1645,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    pointer-events: auto;
 }
 
 .qr-modal-content {

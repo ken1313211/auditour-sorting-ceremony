@@ -94,22 +94,22 @@ function renderQuestionsEditor() {
                 let friendlyName = dept;
                 
                 if (dept === 'CORE_AUDIT') {
-                    deptLabelColor = '#d4af37';
+                    deptLabelColor = '#D4AF37';
                     friendlyName = 'Core Audit';
                 } else if (dept === 'AOA') {
-                    deptLabelColor = '#ff8c00';
+                    deptLabelColor = '#E07A5F';
                     friendlyName = 'AOA';
                 } else if (dept === 'DID') {
-                    deptLabelColor = '#38b6ff';
+                    deptLabelColor = '#3D5A80';
                     friendlyName = 'DID';
                 } else if (dept === 'DIGITAL') {
-                    deptLabelColor = '#39ff14';
+                    deptLabelColor = '#81B29A';
                     friendlyName = 'Digital';
                 } else if (dept === 'TECH_RISK') {
-                    deptLabelColor = '#ff5757';
+                    deptLabelColor = '#E29578';
                     friendlyName = 'Tech Risk';
                 } else if (dept === 'FAAS') {
-                    deptLabelColor = '#00b4d8';
+                    deptLabelColor = '#98C1D9';
                     friendlyName = 'FAAS';
                 }
                 

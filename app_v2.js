@@ -1,5 +1,5 @@
 import { QUESTIONS, DEPARTMENTS } from './data_questions.js';
-import { saveSortingResult, initDatabase, fetchSortingResults, fetchCustomScores } from './firebase-config.js';
+import { saveSortingResult, initDatabase, fetchSortingResults, fetchCustomScores, deleteSortingResult, subscribeToSortingResults } from './firebase-config.js';
 import { init3DScene, triggerInteractionAnimation, triggerRevealAnimation, updateGraphicsSettings } from './scene.js';
 
 // State
@@ -168,21 +168,43 @@ function saveResultToHistory(deptName, recruitName, school, preferredSSL) {
     localStorage.setItem('sorting_history', JSON.stringify(history));
 }
 
-function renderPowerBICharts() {
+let isSubscribed = false;
+
+function renderPowerBICharts(forceSync = false) {
+    // If called directly from an event listener, forceSync might be an Event object
+    const isForced = forceSync === true || (forceSync && forceSync.type === 'click');
+
     if (dbConfig && dbConfig.provider === 'firebase') {
-        fetchSortingResults().then(fbHistory => {
-            if (fbHistory !== null && fbHistory !== undefined) {
-                localStorage.setItem('sorting_history', JSON.stringify(fbHistory));
-                drawDashboard(fbHistory);
-            } else {
-                const history = JSON.parse(localStorage.getItem('sorting_history')) || [];
-                drawDashboard(history);
-            }
-        }).catch(e => {
-            console.error("Firebase fetch error:", e);
+        if (!isSubscribed) {
+            subscribeToSortingResults(fbHistory => {
+                if (fbHistory !== null && fbHistory !== undefined) {
+                    localStorage.setItem('sorting_history', JSON.stringify(fbHistory));
+                    drawDashboard(fbHistory);
+                }
+            });
+            isSubscribed = true;
+        } 
+        
+        if (isForced) {
+            // Force a manual one-time fetch to guarantee sync if realtime fails
+            const refreshBtn = document.getElementById('pbi-refresh-btn');
+            const originalContent = refreshBtn ? refreshBtn.innerHTML : '';
+            if (refreshBtn) refreshBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg> Syncing...`;
+            
+            fetchSortingResults().then(fbHistory => {
+                if (fbHistory !== null && fbHistory !== undefined) {
+                    localStorage.setItem('sorting_history', JSON.stringify(fbHistory));
+                    drawDashboard(fbHistory);
+                }
+                if (refreshBtn) refreshBtn.innerHTML = originalContent;
+            }).catch(e => {
+                console.error("Sync failed:", e);
+                if (refreshBtn) refreshBtn.innerHTML = originalContent;
+            });
+        } else if (isSubscribed) {
             const history = JSON.parse(localStorage.getItem('sorting_history')) || [];
             drawDashboard(history);
-        });
+        }
     } else {
         let history = [];
         try {
@@ -198,6 +220,15 @@ function renderPowerBICharts() {
 }
 
 function drawDashboard(history) {
+    if (typeof ChartDataLabels !== 'undefined') {
+        Chart.register(ChartDataLabels);
+        Chart.defaults.plugins.datalabels.color = '#fff';
+        Chart.defaults.plugins.datalabels.font = { weight: 'bold', size: 14 };
+        Chart.defaults.plugins.datalabels.display = true;
+        Chart.defaults.plugins.datalabels.formatter = (value) => {
+            return value > 0 ? value : '';
+        };
+    }
     const pbiIframe = document.getElementById('pbi-iframe');
     const pbiOverview = document.getElementById('pbi-page-1');
     const pbiLogs = document.getElementById('pbi-page-2');
@@ -312,17 +343,31 @@ function drawDashboard(history) {
     }
 
     // 1. Bar Chart: Department Distribution
+    const DEPT_COLORS = {
+        'Core Audit': '#D4AF37', // Gold
+        'AOA': '#E07A5F',        // Terracotta
+        'DID': '#3D5A80',        // Deep Blue
+        'Digital': '#81B29A',    // Sage Green
+        'Tech Risk': '#E29578',  // Soft Peach/Clay
+        'FAAS': '#98C1D9'        // Soft Light Blue
+    };
+
+    // 1. Bar Chart: Department Distribution
     const ctxDept = document.getElementById('chart-dept-distribution').getContext('2d');
     if (chartDept) chartDept.destroy();
+    
+    const activeDepts1 = ['Core Audit', 'AOA', 'DID', 'Digital', 'Tech Risk', 'FAAS'].filter(d => deptCounts[d] > 0);
+    
     chartDept = new Chart(ctxDept, {
         type: 'bar',
         data: {
-            labels: ['Core Audit', 'AOA', 'DID', 'Digital', 'Tech Risk', 'FAAS'],
+            labels: activeDepts1,
             datasets: [{
                 label: 'Sorted Recruits',
-                data: [deptCounts['Core Audit'], deptCounts['AOA'], deptCounts['DID'], deptCounts['Digital'], deptCounts['Tech Risk'], deptCounts['FAAS']],
-                backgroundColor: ['#d4af37', '#ff8c00', '#38b6ff', '#39ff14', '#ff5757', '#00b4d8'],
-                borderRadius: 4
+                data: activeDepts1.map(d => deptCounts[d]),
+                backgroundColor: activeDepts1.map(d => DEPT_COLORS[d]),
+                borderRadius: 4,
+                maxBarThickness: 60
             }]
         },
         options: {
@@ -349,13 +394,24 @@ function drawDashboard(history) {
         'Research & Advisory': Math.round(deptCounts['FAAS'] * 0.93)
     };
 
+    const skillColorMap = {
+        'Accuracy & Integrity': DEPT_COLORS['Core Audit'],
+        'Process & Consistency': DEPT_COLORS['AOA'],
+        'Data Prep & Validation': DEPT_COLORS['DID'],
+        'Automation & Tech': DEPT_COLORS['Digital'],
+        'Security & Compliance': DEPT_COLORS['Tech Risk'],
+        'Research & Advisory': DEPT_COLORS['FAAS']
+    };
+    
+    const activeSkills = Object.keys(skillCounts).filter(k => skillCounts[k] > 0);
+
     chartSkill = new Chart(ctxSkill, {
         type: 'doughnut',
         data: {
-            labels: Object.keys(skillCounts),
+            labels: activeSkills,
             datasets: [{
-                data: Object.values(skillCounts),
-                backgroundColor: ['#d4af37', '#ff8c00', '#38b6ff', '#39ff14', '#ff5757', '#00b4d8'],
+                data: activeSkills.map(k => skillCounts[k]),
+                backgroundColor: activeSkills.map(k => skillColorMap[k]),
                 borderWidth: 1,
                 borderColor: '#141414'
             }]
@@ -376,22 +432,25 @@ function drawDashboard(history) {
     const ctxPref = document.getElementById('chart-pref-vs-placement');
     if (ctxPref) {
         if (chartPrefVsPlacement) chartPrefVsPlacement.destroy();
+        const activeDepts3 = ['Core Audit', 'AOA', 'DID', 'Digital', 'Tech Risk', 'FAAS'].filter(d => deptCounts[d] > 0 || preferredCounts[d] > 0);
         chartPrefVsPlacement = new Chart(ctxPref.getContext('2d'), {
             type: 'bar',
             data: {
-                labels: ['Core Audit', 'AOA', 'DID', 'Digital', 'Tech Risk', 'FAAS'],
+                labels: activeDepts3,
                 datasets: [
                     {
                         label: 'Preferred (Expected)',
-                        data: [preferredCounts['Core Audit'], preferredCounts['AOA'], preferredCounts['DID'], preferredCounts['Digital'], preferredCounts['Tech Risk'], preferredCounts['FAAS']],
+                        data: activeDepts3.map(d => preferredCounts[d]),
                         backgroundColor: '#555555',
-                        borderRadius: 2
+                        borderRadius: 2,
+                        maxBarThickness: 40
                     },
                     {
                         label: 'Placed (Actual)',
-                        data: [deptCounts['Core Audit'], deptCounts['AOA'], deptCounts['DID'], deptCounts['Digital'], deptCounts['Tech Risk'], deptCounts['FAAS']],
-                        backgroundColor: ['#d4af37', '#ff8c00', '#38b6ff', '#39ff14', '#ff5757', '#00b4d8'],
-                        borderRadius: 2
+                        data: activeDepts3.map(d => deptCounts[d]),
+                        backgroundColor: activeDepts3.map(d => DEPT_COLORS[d]),
+                        borderRadius: 2,
+                        maxBarThickness: 40
                     }
                 ]
             },
@@ -408,14 +467,16 @@ function drawDashboard(history) {
 
     // Prepare data for School Pipeline, Traits, and Secondary Affinity
     const schools = [...new Set(history.map(item => item.school).filter(s => s && s.trim() !== ""))];
-    const dsColors = ['#d4af37', '#ff8c00', '#38b6ff', '#39ff14', '#ff5757', '#00b4d8'];
     const deptKeysArr = ['Core Audit', 'AOA', 'DID', 'Digital', 'Tech Risk', 'FAAS'];
     
-    const schoolDatasets = deptKeysArr.map((dept, index) => {
+    const activeDepts4 = deptKeysArr.filter(dept => schools.some(sch => history.filter(h => h.school === sch && h.dept === dept).length > 0));
+    
+    const schoolDatasets = activeDepts4.map(dept => {
         return {
             label: dept,
             data: schools.map(sch => history.filter(h => h.school === sch && h.dept === dept).length),
-            backgroundColor: dsColors[index]
+            backgroundColor: DEPT_COLORS[dept],
+            maxBarThickness: 60
         };
     });
 
@@ -481,9 +542,9 @@ function drawDashboard(history) {
                     label: 'Cohort Average (%)',
                     data: avgTraits,
                     backgroundColor: 'rgba(212, 175, 55, 0.2)', // Gold tint
-                    borderColor: '#d4af37',
+                    borderColor: '#D4AF37',
                     pointBackgroundColor: '#fff',
-                    pointBorderColor: '#d4af37'
+                    pointBorderColor: '#D4AF37'
                 }]
             },
             options: {
@@ -505,13 +566,14 @@ function drawDashboard(history) {
     const ctxSecondary = document.getElementById('chart-secondary-affinity');
     if (ctxSecondary) {
         if (chartSecondaryAffinity) chartSecondaryAffinity.destroy();
+        const activeDepts6 = deptKeysArr.filter(d => secondaryCounts[d] > 0);
         chartSecondaryAffinity = new Chart(ctxSecondary.getContext('2d'), {
             type: 'doughnut',
             data: {
-                labels: deptKeysArr,
+                labels: activeDepts6,
                 datasets: [{
-                    data: [secondaryCounts['Core Audit'], secondaryCounts['AOA'], secondaryCounts['DID'], secondaryCounts['Digital'], secondaryCounts['Tech Risk'], secondaryCounts['FAAS']],
-                    backgroundColor: dsColors,
+                    data: activeDepts6.map(d => secondaryCounts[d]),
+                    backgroundColor: activeDepts6.map(d => DEPT_COLORS[d]),
                     borderWidth: 1, borderColor: '#141414'
                 }]
             },
@@ -551,11 +613,12 @@ function drawDashboard(history) {
 
             const tdDept = document.createElement('td');
             let color = '#fff';
-            if (item.dept.toLowerCase().includes('core') || item.dept.toLowerCase().includes('audit')) color = '#d4af37';
-            else if (item.dept.toLowerCase().includes('aoa')) color = '#ff8c00';
-            else if (item.dept.toLowerCase().includes('did')) color = '#38b6ff';
-            else if (item.dept.toLowerCase().includes('digital')) color = '#39ff14';
-            else if (item.dept.toLowerCase().includes('tech') || item.dept.toLowerCase().includes('risk')) color = '#ff5757';
+            if (item.dept.toLowerCase().includes('core') || item.dept.toLowerCase().includes('audit')) color = '#D4AF37';
+            else if (item.dept.toLowerCase().includes('aoa')) color = '#E07A5F';
+            else if (item.dept.toLowerCase().includes('did')) color = '#3D5A80';
+            else if (item.dept.toLowerCase().includes('digital')) color = '#81B29A';
+            else if (item.dept.toLowerCase().includes('tech') || item.dept.toLowerCase().includes('risk')) color = '#E29578';
+            else if (item.dept.toLowerCase().includes('faas') || item.dept.toLowerCase().includes('advisory')) color = '#98C1D9';
             tdDept.innerHTML = `<span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:${color}; margin-right:6px;"></span>${item.dept}`;
             tr.appendChild(tdDept);
             
@@ -567,10 +630,17 @@ function drawDashboard(history) {
             const delBtn = document.createElement('button');
             delBtn.textContent = 'Delete';
             delBtn.style.cssText = 'background: #dc3545; color: #fff; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 0.7rem;';
-            delBtn.onclick = () => {
+            delBtn.onclick = async () => {
                 let h = JSON.parse(localStorage.getItem('sorting_history')) || [];
                 h = h.filter(rec => rec.id !== item.id);
                 localStorage.setItem('sorting_history', JSON.stringify(h));
+                
+                // If it's a firebase entry, delete it there too
+                if (item.firebaseKey) {
+                    delBtn.textContent = '...';
+                    await deleteSortingResult(item.firebaseKey);
+                }
+                
                 renderPowerBICharts(); // re-render
             };
             tdAction.appendChild(delBtn);

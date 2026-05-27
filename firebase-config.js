@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, push, set, get } from "firebase/database";
+import { getDatabase, ref, push, set, get, remove, onValue } from "firebase/database";
 
 let app, database;
 let currentConfig = { provider: 'firebase' };
@@ -80,6 +80,7 @@ export async function fetchSortingResults() {
                     const item = data[key];
                     return {
                         id: key.substring(1, 8).toUpperCase(), // generate a unique recruit ID from firebase key
+                        firebaseKey: key,
                         name: item.userName || "Anonymous User",
                         dept: item.department,
                         school: item.school || "",
@@ -98,6 +99,60 @@ export async function fetchSortingResults() {
         }
     }
     return null;
+}
+
+// Function to subscribe to sorting entries for real-time syncing
+export function subscribeToSortingResults(callback) {
+    if (currentConfig.provider === 'firebase') {
+        if (!database) {
+            console.warn("Database not initialized, cannot subscribe.");
+            return;
+        }
+        const entriesRef = ref(database, 'sorting_entries');
+        onValue(entriesRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                const list = Object.keys(data).map(key => {
+                    const item = data[key];
+                    return {
+                        id: key.substring(1, 8).toUpperCase(),
+                        firebaseKey: key,
+                        name: item.userName || "Anonymous User",
+                        dept: item.department,
+                        school: item.school || "",
+                        preferredSSL: item.preferredSSL || "",
+                        timestamp: item.isoTime || new Date(item.timestamp).toISOString(),
+                        details: "Live Firebase Entry",
+                        rawAnswers: item.rawAnswers || [],
+                        scores: item.scores || {}
+                    };
+                });
+                callback(list);
+            } else {
+                callback([]);
+            }
+        });
+    }
+}
+
+// Function to delete a sorting entry from Firebase
+export async function deleteSortingResult(firebaseKey) {
+    if (currentConfig.provider === 'firebase') {
+        if (!database) {
+            console.warn("Database not initialized, skipping delete.");
+            return false;
+        }
+        try {
+            const entryRef = ref(database, `sorting_entries/${firebaseKey}`);
+            await remove(entryRef);
+            console.log("Entry deleted from Firebase!");
+            return true;
+        } catch (error) {
+            console.error("Error deleting from Firebase:", error);
+            return false;
+        }
+    }
+    return false;
 }
 
 // Function to save custom question scores
