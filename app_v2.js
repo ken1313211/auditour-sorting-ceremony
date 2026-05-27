@@ -1620,10 +1620,12 @@ function renderQuestionData(q) {
             prevBtn.style.visibility = 'visible';
             prevBtn.style.opacity = '1';
             prevBtn.style.pointerEvents = 'auto';
+            prevBtn.parentElement.classList.remove('first-question');
         } else {
             prevBtn.style.visibility = 'hidden';
             prevBtn.style.opacity = '0';
             prevBtn.style.pointerEvents = 'none';
+            prevBtn.parentElement.classList.add('first-question');
         }
     }
     
