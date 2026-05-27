@@ -101,8 +101,8 @@ let chartSkill = null;
 let chartTimeline = null;
 let chartPrefVsPlacement = null;
 let chartSchoolPipeline = null;
-let chartCohortTraits = null;
-let chartSecondaryAffinity = null;
+let chartMatchConfidence = null;
+let chartPreferenceAlignment = null;
 
 function seedHistoryIfNeeded() {
     let history = [];
@@ -507,10 +507,11 @@ function drawDashboard(history) {
     const secondaryCounts = { "Core Audit": 0, "AOA": 0, "DID": 0, "Digital": 0, "Tech Risk": 0, "FAAS": 0 };
     
     history.forEach(item => {
-        if (!item.answers) return; // Legacy records skip
+        const itemScores = item.answers || item.scores;
+        if (!itemScores) return; // Legacy records skip
         let normScores = {};
         for (const [d, code] of Object.entries(deptMapping)) {
-            const rawScore = item.answers[code] || 0;
+            const rawScore = itemScores[code] || 0;
             normScores[d] = (rawScore / MAX_SCORES_PBI[code]) * 100;
         }
         validTraitRecruits++;
@@ -529,60 +530,90 @@ function drawDashboard(history) {
         validTraitRecruits ? Math.round(traitTotals.Strategic / validTraitRecruits) : 0,
         validTraitRecruits ? Math.round(traitTotals.Tech / validTraitRecruits) : 0
     ];
-
-    // 5. Radar Chart: Cohort Trait Profile
-    const ctxTraits = document.getElementById('chart-cohort-traits');
-    if (ctxTraits) {
-        if (chartCohortTraits) chartCohortTraits.destroy();
-        chartCohortTraits = new Chart(ctxTraits.getContext('2d'), {
-            type: 'radar',
-            data: {
-                labels: ['Structure & Order', 'Analytical & Investigative', 'Strategic & Advisory', 'Systems & Tech'],
-                datasets: [{
-                    label: 'Cohort Average (%)',
-                    data: avgTraits,
-                    backgroundColor: 'rgba(212, 175, 55, 0.2)', // Gold tint
-                    borderColor: '#D4AF37',
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: '#D4AF37'
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    r: {
-                        angleLines: { color: '#333' },
-                        grid: { color: '#333' },
-                        pointLabels: { color: '#eaeaea', font: { size: 10 } },
-                        ticks: { display: false, min: 0, max: 100 }
-                    }
-                }
+    // 5. Doughnut Chart: Match Confidence (Strong vs Borderline)
+    let strongMatch = 0;
+    let borderlineMatch = 0;
+    let totalMargin = 0;
+    let marginCount = 0;
+    
+    history.forEach(item => {
+        const itemScores = item.answers || item.scores;
+        if (!itemScores) return;
+        let normScores = [];
+        for (const [d, code] of Object.entries(deptMapping)) {
+            const rawScore = itemScores[code] || 0;
+            normScores.push((rawScore / MAX_SCORES_PBI[code]) * 100);
+        }
+        normScores.sort((a, b) => b - a); // descending
+        if (normScores.length >= 2) {
+            const margin = normScores[0] - normScores[1];
+            totalMargin += margin;
+            marginCount++;
+            if (margin >= 15) {
+                strongMatch++;
+            } else {
+                borderlineMatch++;
             }
-        });
+        }
+    });
+
+    const kpiAvgConf = document.getElementById('kpi-avg-confidence');
+    if (kpiAvgConf) {
+        kpiAvgConf.textContent = marginCount > 0 ? (totalMargin / marginCount).toFixed(1) + '%' : '0%';
     }
 
-    // 6. Doughnut Chart: Secondary Affinity (Runner-Ups)
-    const ctxSecondary = document.getElementById('chart-secondary-affinity');
-    if (ctxSecondary) {
-        if (chartSecondaryAffinity) chartSecondaryAffinity.destroy();
-        const activeDepts6 = deptKeysArr.filter(d => secondaryCounts[d] > 0);
-        chartSecondaryAffinity = new Chart(ctxSecondary.getContext('2d'), {
+    const ctxConfidence = document.getElementById('chart-match-confidence');
+    if (ctxConfidence) {
+        if (chartMatchConfidence) chartMatchConfidence.destroy();
+        chartMatchConfidence = new Chart(ctxConfidence.getContext('2d'), {
             type: 'doughnut',
             data: {
-                labels: activeDepts6,
+                labels: ['Strong Match (>15% margin)', 'Borderline Match (<15% margin)'],
                 datasets: [{
-                    data: activeDepts6.map(d => secondaryCounts[d]),
-                    backgroundColor: activeDepts6.map(d => DEPT_COLORS[d]),
+                    data: [strongMatch, borderlineMatch],
+                    backgroundColor: ['#107c41', '#e81123'], // Green vs Red/Warning
                     borderWidth: 1, borderColor: '#141414'
                 }]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'right', labels: { color: '#eaeaea', font: { size: 8 } } } }
+                plugins: { legend: { position: 'bottom', labels: { color: '#eaeaea', font: { size: 10 } } } }
             }
         });
     }
+
+    // 6. Pie Chart: Preference vs Assigned Alignment
+    let alignedCount = 0;
+    let mismatchedCount = 0;
+    history.forEach(item => {
+        if (!item.preferredSSL || item.preferredSSL === "No Preference" || item.preferredSSL === "Undecided") return;
+        if (item.preferredSSL === item.dept) {
+            alignedCount++;
+        } else {
+            mismatchedCount++;
+        }
+    });
+
+    const ctxPreference = document.getElementById('chart-preference-alignment');
+    if (ctxPreference) {
+        if (chartPreferenceAlignment) chartPreferenceAlignment.destroy();
+        chartPreferenceAlignment = new Chart(ctxPreference.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: ['Got Preferred Dept', 'Assigned Different Dept'],
+                datasets: [{
+                    data: [alignedCount, mismatchedCount],
+                    backgroundColor: ['#0078d4', '#ff8c00'], // Blue vs Orange
+                    borderWidth: 1, borderColor: '#141414'
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: '#eaeaea', font: { size: 10 } } } }
+            }
+        });
+    }
+
 
 
     // Populate Page 2 logs
@@ -877,7 +908,55 @@ async function initApp() {
         }, { passive: true });
     }
 
-    document.getElementById('open-settings-btn').addEventListener('click', openSettingsScreen);
+    function promptPassword(onSuccess) {
+        if (sessionStorage.getItem('auditour_admin_auth') === 'true') {
+            onSuccess();
+            return;
+        }
+
+        const modal = document.getElementById('password-modal');
+        const input = document.getElementById('admin-password-input');
+        const submitBtn = document.getElementById('submit-password-btn');
+        const cancelBtn = document.getElementById('cancel-password-btn');
+        
+        input.value = '';
+        modal.style.display = 'flex';
+        input.focus();
+        
+        // Remove previous listeners to avoid duplicates
+        const cleanup = () => {
+            modal.style.display = 'none';
+            submitBtn.removeEventListener('click', handleSubmit);
+            cancelBtn.removeEventListener('click', handleCancel);
+            input.removeEventListener('keypress', handleKeypress);
+        };
+        
+        const handleSubmit = () => {
+            if (input.value === "eyauditour2026") {
+                sessionStorage.setItem('auditour_admin_auth', 'true');
+                cleanup();
+                onSuccess();
+            } else {
+                alert("Incorrect password.");
+                input.value = '';
+                input.focus();
+            }
+        };
+        
+        const handleCancel = () => cleanup();
+        
+        const handleKeypress = (e) => {
+            if (e.key === 'Enter') handleSubmit();
+        };
+        
+        submitBtn.addEventListener('click', handleSubmit);
+        cancelBtn.addEventListener('click', handleCancel);
+        input.addEventListener('keypress', handleKeypress);
+    }
+
+    document.getElementById('open-settings-btn').addEventListener('click', () => {
+        promptPassword(openSettingsScreen);
+    });
     document.getElementById('save-settings-btn').addEventListener('click', closeSettingsScreen);
     
     // QR Modal Logic
@@ -897,7 +976,9 @@ async function initApp() {
         if (qrModal) qrModal.style.display = 'none';
     });
 
-    document.getElementById('open-admin-btn').addEventListener('click', openAdminScreen);
+    document.getElementById('open-admin-btn').addEventListener('click', () => {
+        promptPassword(openAdminScreen);
+    });
     document.getElementById('pbi-back-btn').addEventListener('click', closeAdminScreen);
     document.getElementById('pbi-refresh-btn').addEventListener('click', renderPowerBICharts);
     

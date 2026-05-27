@@ -439,7 +439,7 @@
         </section>
 
         <!-- Admin Screen -->
-        <section id="admin-screen" class="screen hp-theme">
+        <section id="admin-screen" class="screen">
             <div id="pbi-mock-app">
                 <!-- 1. PowerBI Top Header Bar -->
                 <header id="pbi-header">
@@ -555,7 +555,7 @@
                                     </div>
                                     <div class="pbi-kpi-card">
                                         <span class="kpi-label">AVG MATCH CONFIDENCE</span>
-                                        <span class="kpi-value" style="color: #20e2da;">91.4%</span>
+                                        <span class="kpi-value" id="kpi-avg-confidence" style="color: #20e2da;">0%</span>
                                         <span class="kpi-footer">Based on point spread</span>
                                     </div>
                                     <div class="pbi-kpi-card">
@@ -607,25 +607,26 @@
                                         </div>
                                     </div>
 
-                                    <!-- Visual 5: Cohort Trait Profile -->
+                                    <!-- Visual 5: Match Confidence -->
                                     <div class="pbi-visual-card">
                                         <div class="visual-header">
-                                            <span class="visual-title">Cohort Trait & Personality Profile</span>
+                                            <span class="visual-title">Sorting Confidence (Margin)</span>
                                         </div>
                                         <div class="visual-chart-container">
-                                            <canvas id="chart-cohort-traits"></canvas>
+                                            <canvas id="chart-match-confidence"></canvas>
                                         </div>
                                     </div>
 
-                                    <!-- Visual 6: Secondary Affinity Distribution -->
+                                    <!-- Visual 6: Preference Alignment -->
                                     <div class="pbi-visual-card">
                                         <div class="visual-header">
-                                            <span class="visual-title">Secondary Affinity (Runner-Up)</span>
+                                            <span class="visual-title">Preference vs. Assigned Alignment</span>
                                         </div>
                                         <div class="visual-chart-container">
-                                            <canvas id="chart-secondary-affinity"></canvas>
+                                            <canvas id="chart-preference-alignment"></canvas>
                                         </div>
                                     </div>
+
 
                                 </div>
                             </div>
@@ -787,6 +788,18 @@
                     <img id="share-qr-img" src="" alt="QR Code" style="width: 200px; height: 200px; display: block;" />
                 </div>
                 <p style="color: #ccc; font-size: 0.9rem; margin: 0;">Scan this QR code with a phone to open the Sorting Ceremony.</p>
+            </div>
+        </div>
+
+        <!-- Password Modal -->
+        <div id="password-modal" class="qr-modal" style="display: none; align-items: center; justify-content: center; z-index: 10005;" onclick="if(event.target === this) { this.style.display = 'none'; }">
+            <div class="modal-content" style="position: relative; width: 320px; text-align: center; background: radial-gradient(circle at center, #002244 0%, #000811 100%); border: 1px solid var(--gold); border-radius: 12px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+                <h2 style="font-family: 'Cinzel Decorative', serif; color: var(--gold); margin-top: 0; margin-bottom: 20px; font-size: 1.5rem;">Admin Access</h2>
+                <input type="password" id="admin-password-input" placeholder="Enter Password" style="width: 80%; padding: 12px; border-radius: 4px; border: 1px solid rgba(212, 175, 55, 0.5); background: rgba(0,0,0,0.5); color: #fff; font-family: inherit; margin-bottom: 20px; text-align: center; outline: none; font-size: 1rem;">
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button id="cancel-password-btn" class="ink-btn" style="padding: 10px 20px; font-size: 0.9rem; min-width: 100px;">Cancel</button>
+                    <button id="submit-password-btn" class="ink-btn gold-ink" style="padding: 10px 20px; font-size: 0.9rem; min-width: 100px;">Unlock</button>
+                </div>
             </div>
         </div>
 
