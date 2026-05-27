@@ -210,3 +210,37 @@ export async function fetchCustomScores() {
         }
     }
 }
+
+export async function saveGlobalSettings(settings) {
+    if (currentConfig.provider === 'firebase') {
+        if (!database) {
+            console.warn("Database not initialized, skipping save.");
+            return;
+        }
+        try {
+            const settingsRef = ref(database, 'settings/global_app_settings');
+            await set(settingsRef, settings);
+            console.log("Global settings saved to Firebase!");
+        } catch (error) {
+            console.error("Error saving settings to Firebase:", error);
+        }
+    } else {
+        localStorage.setItem('local_global_settings', JSON.stringify(settings));
+    }
+}
+
+export function subscribeToGlobalSettings(callback) {
+    if (currentConfig.provider === 'firebase' && database) {
+        const settingsRef = ref(database, 'settings/global_app_settings');
+        onValue(settingsRef, (snapshot) => {
+            if (snapshot.exists()) {
+                callback(snapshot.val());
+            }
+        });
+    } else {
+        const local = localStorage.getItem('local_global_settings');
+        if (local) {
+            callback(JSON.parse(local));
+        }
+    }
+}

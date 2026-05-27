@@ -7,6 +7,8 @@
     --ink-light: #524738;
     --gold: #d4af37;
     --gold-glow: rgba(212, 175, 55, 0.6);
+    --splash-bg: url('assets/bg_custom_splash.png');
+    --sorting-bg: url('assets/bg_custom_sorting.png');
 }
 
 * {
@@ -29,7 +31,7 @@ body {
 .main-bg {
     position: absolute;
     top: 0; left: 0; width: 100vw; height: 100vh;
-    background-image: url('assets/bg_greathall.png');
+    background-image: var(--sorting-bg);
     background-size: cover;
     background-position: center;
     z-index: 0;
@@ -47,7 +49,7 @@ body {
     content: '';
     position: absolute;
     top: -5%; left: -5%; width: 110%; height: 110%; /* Overflow slightly for scale effect */
-    background-image: url('assets/bg_menu.png');
+    background-image: var(--splash-bg);
     background-size: cover;
     background-position: center;
     
